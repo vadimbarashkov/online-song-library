@@ -1,0 +1,15 @@
+*
+
+!/.gitignore
+!/.github/**
+
+!*.go
+!go.sum
+!go.mod
+
+!README.md
+!LICENSE
+
+!Makefile
+
+!*/
