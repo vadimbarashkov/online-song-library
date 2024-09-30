@@ -48,18 +48,10 @@ func (p *Postgres) DSN() string {
 		p.User, p.Password, p.Host, p.Port, p.DB, p.SSLMode)
 }
 
-func Load(path ...string) (*Config, error) {
+func Load(path string) (*Config, error) {
 	const op = "config.Load"
 
-	var err error
-
-	if len(path) > 0 {
-		err = godotenv.Load(path[0])
-	} else {
-		err = godotenv.Load()
-	}
-
-	if err != nil {
+	if err := godotenv.Load(path); err != nil {
 		return nil, fmt.Errorf("%s: failed to load env vars from env file: %w", op, err)
 	}
 
