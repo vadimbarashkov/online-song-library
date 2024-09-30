@@ -8,18 +8,21 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// Environment constants for application deployment.
 const (
 	EnvDev  = "dev"
 	EnvTest = "test"
 	EnvProd = "prod"
 )
 
+// Config holds the configuration settings for the application.
 type Config struct {
 	Env        string `env:"ENV" envDefault:"dev"`
 	HTTPServer `envPrefix:"HTTP_SERVER_"`
 	Postgres   `envPrefix:"POSTGRES_"`
 }
 
+// HTTPServer contains settings related to the HTTP server.
 type HTTPServer struct {
 	Port           int           `env:"PORT" envDefault:"8080"`
 	ReadTimeout    time.Duration `env:"READ_TIMEOUT" envDefault:"5s"`
@@ -30,10 +33,12 @@ type HTTPServer struct {
 	KeyFile        string        `env:"KEY_FILE"`
 }
 
+// Addr returns the address <:port> on which the HTTP server will listen.
 func (s *HTTPServer) Addr() string {
 	return fmt.Sprintf(":%d", s.Port)
 }
 
+// Postgres contains settings required to connect to a PostgreSQL database.
 type Postgres struct {
 	User     string `env:"USER,required"`
 	Password string `env:"PASSWORD,required"`
@@ -43,11 +48,13 @@ type Postgres struct {
 	SSLMode  string `env:"SSLMODE" envDefault:"disable"`
 }
 
+// DSN returns the Data Source Name (DSN) used to connect to the PostgreSQL database.
 func (p *Postgres) DSN() string {
 	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
 		p.User, p.Password, p.Host, p.Port, p.DB, p.SSLMode)
 }
 
+// Load reads environment variables from a specified .env file and parses them into the Config struct.
 func Load(path string) (*Config, error) {
 	const op = "config.Load"
 
