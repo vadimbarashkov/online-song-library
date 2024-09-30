@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/caarlos0/env/v11"
 	"github.com/joho/godotenv"
@@ -14,8 +15,23 @@ const (
 )
 
 type Config struct {
-	Env      string `env:"ENV" envDefault:"dev"`
-	Postgres `envPrefix:"POSTGRES_"`
+	Env        string `env:"ENV" envDefault:"dev"`
+	HTTPServer `envPrefix:"HTTP_SERVER_"`
+	Postgres   `envPrefix:"POSTGRES_"`
+}
+
+type HTTPServer struct {
+	Port           int           `env:"PORT" envDefault:"8080"`
+	ReadTimeout    time.Duration `env:"READ_TIMEOUT" envDefault:"5s"`
+	WriteTimeout   time.Duration `env:"WRITE_TIMEOUT" envDefault:"10s"`
+	IdleTimeout    time.Duration `env:"IDLE_TIMEOUT" envDefault:"1m"`
+	MaxHeaderBytes int           `env:"MAX_HEADER_BYTES" envDefault:"1048576"`
+	CertFile       string        `env:"CERT_FILE"`
+	KeyFile        string        `env:"KEY_FILE"`
+}
+
+func (s *HTTPServer) Addr() string {
+	return fmt.Sprintf(":%d", s.Port)
 }
 
 type Postgres struct {
