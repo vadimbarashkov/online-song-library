@@ -61,7 +61,7 @@ func TestSongRepository_Save(t *testing.T) {
 			WithArgs("Test Group", "Test Song", fixedTime, "Test Text", "https://example.com").
 			WillReturnError(errUnknown)
 
-		savedSong, err := repo.Save(context.Background(), entity.Song{
+		song, err := repo.Save(context.Background(), entity.Song{
 			Group: "Test Group",
 			Song:  "Test Song",
 			SongDetail: entity.SongDetail{
@@ -73,7 +73,7 @@ func TestSongRepository_Save(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, errUnknown)
-		assert.Nil(t, savedSong)
+		assert.Nil(t, song)
 	})
 
 	t.Run("success", func(t *testing.T) {
@@ -88,7 +88,7 @@ func TestSongRepository_Save(t *testing.T) {
 			WithArgs("Test Group", "Test Song", fixedTime, "Test Text", "https://example.com").
 			WillReturnRows(rows)
 
-		savedSong, err := repo.Save(context.Background(), entity.Song{
+		song, err := repo.Save(context.Background(), entity.Song{
 			Group: "Test Group",
 			Song:  "Test Song",
 			SongDetail: entity.SongDetail{
@@ -99,15 +99,15 @@ func TestSongRepository_Save(t *testing.T) {
 		})
 
 		assert.NoError(t, err)
-		assert.NotNil(t, savedSong)
-		assert.Equal(t, songID, savedSong.ID)
-		assert.Equal(t, "Test Group", savedSong.Group)
-		assert.Equal(t, "Test Song", savedSong.Song)
-		assert.Equal(t, fixedTime, savedSong.SongDetail.ReleaseDate)
-		assert.Equal(t, "Test Text", savedSong.SongDetail.Text)
-		assert.Equal(t, "https://example.com", savedSong.SongDetail.Link)
-		assert.Equal(t, fixedTime, savedSong.CreatedAt)
-		assert.Equal(t, fixedTime, savedSong.UpdatedAt)
+		assert.NotNil(t, song)
+		assert.Equal(t, songID, song.ID)
+		assert.Equal(t, "Test Group", song.Group)
+		assert.Equal(t, "Test Song", song.Song)
+		assert.Equal(t, fixedTime, song.SongDetail.ReleaseDate)
+		assert.Equal(t, "Test Text", song.SongDetail.Text)
+		assert.Equal(t, "https://example.com", song.SongDetail.Link)
+		assert.Equal(t, fixedTime, song.CreatedAt)
+		assert.Equal(t, fixedTime, song.UpdatedAt)
 	})
 }
 
@@ -137,19 +137,19 @@ func TestSongRepository_GetAll(t *testing.T) {
 			ExpectQuery(`SELECT (.+) FROM songs`).
 			WillReturnRows(rows)
 
-		res, err := repo.GetAll(context.Background())
+		songs, err := repo.GetAll(context.Background())
 
 		assert.NoError(t, err)
-		assert.NotNil(t, res)
-		assert.Len(t, res, 1)
-		assert.Equal(t, songID, res[0].ID)
-		assert.Equal(t, "Test Group", res[0].Group)
-		assert.Equal(t, "Test Song", res[0].Song)
-		assert.Equal(t, fixedTime, res[0].SongDetail.ReleaseDate)
-		assert.Equal(t, "Test Text", res[0].SongDetail.Text)
-		assert.Equal(t, "https://example.com", res[0].SongDetail.Link)
-		assert.Equal(t, fixedTime, res[0].CreatedAt)
-		assert.Equal(t, fixedTime, res[0].UpdatedAt)
+		assert.NotNil(t, songs)
+		assert.Len(t, songs, 1)
+		assert.Equal(t, songID, songs[0].ID)
+		assert.Equal(t, "Test Group", songs[0].Group)
+		assert.Equal(t, "Test Song", songs[0].Song)
+		assert.Equal(t, fixedTime, songs[0].SongDetail.ReleaseDate)
+		assert.Equal(t, "Test Text", songs[0].SongDetail.Text)
+		assert.Equal(t, "https://example.com", songs[0].SongDetail.Link)
+		assert.Equal(t, fixedTime, songs[0].CreatedAt)
+		assert.Equal(t, fixedTime, songs[0].UpdatedAt)
 	})
 }
 
@@ -198,18 +198,18 @@ func TestSongRepository_GetByID(t *testing.T) {
 			WithArgs(songID).
 			WillReturnRows(rows)
 
-		res, err := repo.GetByID(context.Background(), songID)
+		song, err := repo.GetByID(context.Background(), songID)
 
 		assert.NoError(t, err)
-		assert.NotNil(t, res)
-		assert.Equal(t, songID, res.ID)
-		assert.Equal(t, "Test Group", res.Group)
-		assert.Equal(t, "Test Song", res.Song)
-		assert.Equal(t, fixedTime, res.SongDetail.ReleaseDate)
-		assert.Equal(t, "Test Text", res.SongDetail.Text)
-		assert.Equal(t, "https://example.com", res.SongDetail.Link)
-		assert.Equal(t, fixedTime, res.CreatedAt)
-		assert.Equal(t, fixedTime, res.UpdatedAt)
+		assert.NotNil(t, song)
+		assert.Equal(t, songID, song.ID)
+		assert.Equal(t, "Test Group", song.Group)
+		assert.Equal(t, "Test Song", song.Song)
+		assert.Equal(t, fixedTime, song.SongDetail.ReleaseDate)
+		assert.Equal(t, "Test Text", song.SongDetail.Text)
+		assert.Equal(t, "https://example.com", song.SongDetail.Link)
+		assert.Equal(t, fixedTime, song.CreatedAt)
+		assert.Equal(t, fixedTime, song.UpdatedAt)
 	})
 }
 
@@ -277,7 +277,7 @@ func TestSongRepository_Update(t *testing.T) {
 			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), songID).
 			WillReturnRows(rows)
 
-		res, err := repo.Update(context.Background(), songID, entity.Song{
+		song, err := repo.Update(context.Background(), songID, entity.Song{
 			SongDetail: entity.SongDetail{
 				Text: "New Test Text",
 				Link: "https://new-example.com",
@@ -285,15 +285,15 @@ func TestSongRepository_Update(t *testing.T) {
 		})
 
 		assert.NoError(t, err)
-		assert.NotNil(t, res)
-		assert.Equal(t, songID, res.ID)
-		assert.Equal(t, "Test Group", res.Group)
-		assert.Equal(t, "Test Song", res.Song)
-		assert.Equal(t, fixedTime, res.SongDetail.ReleaseDate)
-		assert.Equal(t, "New Test Text", res.SongDetail.Text)
-		assert.Equal(t, "https://new-example.com", res.SongDetail.Link)
-		assert.Equal(t, fixedTime, res.CreatedAt)
-		assert.Equal(t, fixedTime, res.UpdatedAt)
+		assert.NotNil(t, song)
+		assert.Equal(t, songID, song.ID)
+		assert.Equal(t, "Test Group", song.Group)
+		assert.Equal(t, "Test Song", song.Song)
+		assert.Equal(t, fixedTime, song.SongDetail.ReleaseDate)
+		assert.Equal(t, "New Test Text", song.SongDetail.Text)
+		assert.Equal(t, "https://new-example.com", song.SongDetail.Link)
+		assert.Equal(t, fixedTime, song.CreatedAt)
+		assert.Equal(t, fixedTime, song.UpdatedAt)
 	})
 }
 
