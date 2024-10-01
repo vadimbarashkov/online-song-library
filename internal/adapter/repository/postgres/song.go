@@ -16,7 +16,7 @@ import (
 
 type songRow struct {
 	ID          uuid.UUID `db:"id"`
-	Group       string    `db:"group_name"`
+	GroupName   string    `db:"group_name"`
 	Song        string    `db:"song"`
 	ReleaseDate time.Time `db:"release_date"`
 	Text        string    `db:"text"`
@@ -31,6 +31,19 @@ type SongRepository struct {
 
 func NewSongRepository(db *sqlx.DB) *SongRepository {
 	return &SongRepository{db: db}
+}
+
+func (r *SongRepository) entityToRow(song entity.Song) songRow {
+	return songRow{
+		ID:          song.ID,
+		GroupName:   song.Group,
+		Song:        song.Song,
+		ReleaseDate: song.SongDetail.ReleaseDate,
+		Text:        song.SongDetail.Text,
+		Link:        song.SongDetail.Link,
+		CreatedAt:   song.CreatedAt,
+		UpdatedAt:   song.UpdatedAt,
+	}
 }
 
 func (r *SongRepository) entityToMap(song entity.Song) map[string]any {
@@ -58,7 +71,7 @@ func (r *SongRepository) entityToMap(song entity.Song) map[string]any {
 func (r *SongRepository) rowToEntity(row songRow) *entity.Song {
 	return &entity.Song{
 		ID:    row.ID,
-		Group: row.Group,
+		Group: row.GroupName,
 		Song:  row.Song,
 		SongDetail: entity.SongDetail{
 			ReleaseDate: row.ReleaseDate,
@@ -83,9 +96,11 @@ func (r *SongRepository) rowsToEntity(rows []songRow) []*entity.Song {
 func (r *SongRepository) Save(ctx context.Context, song entity.Song) (*entity.Song, error) {
 	const op = "adapter.repository.postgres.SongRepository.Save"
 
+	row := r.entityToRow(song)
+
 	query, args, err := sq.
 		Insert("songs").Columns("group_name", "song", "release_date", "text", "link").
-		Values(song.Group, song.Song, song.SongDetail.ReleaseDate, song.SongDetail.Text, song.SongDetail.Link).
+		Values(row.GroupName, row.Song, row.ReleaseDate, row.Text, row.Link).
 		Suffix("RETURNING *").
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
@@ -93,13 +108,13 @@ func (r *SongRepository) Save(ctx context.Context, song entity.Song) (*entity.So
 		return nil, fmt.Errorf("%s: failed to build sql query: %w", op, err)
 	}
 
-	var row songRow
+	var savedRow songRow
 
-	if err := r.db.GetContext(ctx, &row, query, args...); err != nil {
+	if err := r.db.GetContext(ctx, &savedRow, query, args...); err != nil {
 		return nil, fmt.Errorf("%s: failed to insert row into 'songs' table: %w", op, err)
 	}
 
-	return r.rowToEntity(row), nil
+	return r.rowToEntity(savedRow), nil
 }
 
 func (r *SongRepository) GetAll(ctx context.Context) ([]*entity.Song, error) {
