@@ -1,24 +1,13 @@
-CREATE TABLE IF NOT EXISTS groups(
-    id UUID DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL UNIQUE,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY(id)
-);
-
 CREATE TABLE IF NOT EXISTS songs(
     id UUID DEFAULT gen_random_uuid(),
-    group_id UUID NOT NULL,
-    name VARCHAR(255) NOT NULL UNIQUE,
+    group_name VARCHAR(255) NOT NULL,
+    song VARCHAR(255) NOT NULL,
     release_date DATE NOT NULL,
     text TEXT NOT NULL,
     link VARCHAR(2048) NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY(id),
-    FOREIGN KEY(group_id)
-        REFERENCES groups(id)
-        ON DELETE CASCADE
+    PRIMARY KEY(id)
 );
 
 CREATE OR REPLACE FUNCTION update_timestamp()
@@ -28,11 +17,6 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-
-CREATE TRIGGER groups_update_updated_at
-BEFORE UPDATE ON groups
-FOR EACH ROW
-EXECUTE FUNCTION update_timestamp();
 
 CREATE TRIGGER songs_update_updated_at
 BEFORE UPDATE ON songs

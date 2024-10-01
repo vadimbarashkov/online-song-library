@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jmoiron/sqlx"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -16,8 +15,6 @@ const (
 	defaultConnMaxLifetime = 30 * time.Minute
 	defaultMaxIdleConns    = 5
 	defaultMaxOpenConns    = 25
-
-	uniqueViolationErrCode = "23505"
 )
 
 // Option represents a functional option for configuring the database connection.
@@ -70,11 +67,4 @@ func New(ctx context.Context, dsn string, opts ...Option) (*sqlx.DB, error) {
 	}
 
 	return db, nil
-}
-
-// IsUniqueViolationError checks if the provided error is a unique constraint violation error from
-// the PostgreSQL database. It returns true if the error is a unique violation, otherwise false.
-func IsUniqueViolationError(err error) bool {
-	pgErr, ok := err.(*pgconn.PgError)
-	return ok && pgErr.SQLState() == uniqueViolationErrCode
 }
