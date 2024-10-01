@@ -1,0 +1,24 @@
+CREATE TABLE IF NOT EXISTS songs(
+    id UUID DEFAULT gen_random_uuid(),
+    group_name VARCHAR(255) NOT NULL,
+    song VARCHAR(255) NOT NULL,
+    release_date DATE NOT NULL,
+    text TEXT NOT NULL,
+    link VARCHAR(2048) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(id)
+);
+
+CREATE OR REPLACE FUNCTION update_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER songs_update_updated_at
+BEFORE UPDATE ON songs
+FOR EACH ROW
+EXECUTE FUNCTION update_timestamp();
