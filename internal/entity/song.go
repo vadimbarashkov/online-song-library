@@ -7,10 +7,7 @@ import (
 	"github.com/google/uuid"
 )
 
-var (
-	ErrSongNotFound     = errors.New("song not found")
-	ErrNoFieldsToUpdate = errors.New("no fields to update")
-)
+var ErrSongNotFound = errors.New("song not found")
 
 type Song struct {
 	ID    uuid.UUID

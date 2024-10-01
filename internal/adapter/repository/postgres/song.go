@@ -83,7 +83,7 @@ func (r *SongRepository) rowToEntity(row songRow) *entity.Song {
 	}
 }
 
-func (r *SongRepository) rowsToEntity(rows []songRow) []*entity.Song {
+func (r *SongRepository) rowsToEntities(rows []songRow) []*entity.Song {
 	songs := make([]*entity.Song, 0, len(rows))
 
 	for _, row := range rows {
@@ -97,6 +97,14 @@ func (r *SongRepository) Save(ctx context.Context, song entity.Song) (*entity.So
 	const op = "adapter.repository.postgres.SongRepository.Save"
 
 	row := r.entityToRow(song)
+	if row.GroupName == "" ||
+		row.Song == "" ||
+		row.ReleaseDate.IsZero() ||
+		row.Text == "" ||
+		row.Link == "" {
+
+		return nil, fmt.Errorf("%s: missing required fields for saving song", op)
+	}
 
 	query, args, err := sq.
 		Insert("songs").Columns("group_name", "song", "release_date", "text", "link").
@@ -134,7 +142,7 @@ func (r *SongRepository) GetAll(ctx context.Context) ([]*entity.Song, error) {
 		return nil, fmt.Errorf("%s: failed to get rows from 'songs' table: %w", op, err)
 	}
 
-	return r.rowsToEntity(rows), nil
+	return r.rowsToEntities(rows), nil
 }
 
 func (r *SongRepository) GetByID(ctx context.Context, songID uuid.UUID) (*entity.Song, error) {
@@ -167,23 +175,24 @@ func (r *SongRepository) Update(ctx context.Context, songID uuid.UUID, song enti
 
 	clauses := r.entityToMap(song)
 	if len(clauses) == 0 {
-		return nil, fmt.Errorf("%s: %w", op, entity.ErrNoFieldsToUpdate)
+		return nil, fmt.Errorf("%s: no fields provided for update", op)
 	}
 
-	query, args, err := sq.
+	ub := sq.
 		Update("songs").
 		SetMap(clauses).
 		Where(sq.Eq{"id": songID}).
 		Suffix("RETURNING *").
-		PlaceholderFormat(sq.Dollar).
-		ToSql()
+		PlaceholderFormat(sq.Dollar)
+
+	query, args, err := ub.ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("%s: failed to build sql query: %w", op, err)
 	}
 
-	var row songRow
+	var updatedRow songRow
 
-	if err := r.db.GetContext(ctx, &row, query, args...); err != nil {
+	if err := r.db.GetContext(ctx, &updatedRow, query, args...); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("%s: %w", op, entity.ErrSongNotFound)
 		}
@@ -191,7 +200,7 @@ func (r *SongRepository) Update(ctx context.Context, songID uuid.UUID, song enti
 		return nil, fmt.Errorf("%s: failed to update row from 'songs' table: %w", op, err)
 	}
 
-	return r.rowToEntity(row), nil
+	return r.rowToEntity(updatedRow), nil
 }
 
 func (r *SongRepository) Delete(ctx context.Context, songID uuid.UUID) (int64, error) {
