@@ -14,6 +14,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
+// songRow represents a row in the 'songs' table of the database.
 type songRow struct {
 	ID          uuid.UUID `db:"id"`
 	GroupName   string    `db:"group_name"`
@@ -25,14 +26,17 @@ type songRow struct {
 	UpdatedAt   time.Time `db:"updated_at"`
 }
 
+// SongRepository provides methods to interact with the songs table in the database.
 type SongRepository struct {
 	db *sqlx.DB
 }
 
+// NewSongRepository creates a new instance of SongRepository with the provided database connection.
 func NewSongRepository(db *sqlx.DB) *SongRepository {
 	return &SongRepository{db: db}
 }
 
+// entityToRow converts an entity.Song object to a songRow suitable for database operations.
 func (r *SongRepository) entityToRow(song entity.Song) songRow {
 	return songRow{
 		ID:          song.ID,
@@ -46,6 +50,7 @@ func (r *SongRepository) entityToRow(song entity.Song) songRow {
 	}
 }
 
+// entityToMap converts an entity.Song object to a map of database fields for updates.
 func (r *SongRepository) entityToMap(song entity.Song) map[string]any {
 	clauses := make(map[string]any)
 
@@ -68,6 +73,7 @@ func (r *SongRepository) entityToMap(song entity.Song) map[string]any {
 	return clauses
 }
 
+// rowToEntity converts a songRow from the database to an entity.Song object.
 func (r *SongRepository) rowToEntity(row songRow) *entity.Song {
 	return &entity.Song{
 		ID:    row.ID,
@@ -83,6 +89,7 @@ func (r *SongRepository) rowToEntity(row songRow) *entity.Song {
 	}
 }
 
+// rowsToEntities converts a slice of songRow objects to a slice of entity.Song pointers.
 func (r *SongRepository) rowsToEntities(rows []songRow) []*entity.Song {
 	songs := make([]*entity.Song, 0, len(rows))
 
@@ -93,6 +100,8 @@ func (r *SongRepository) rowsToEntities(rows []songRow) []*entity.Song {
 	return songs
 }
 
+// Save inserts a new song into the database and returns the saved entity.Song object.
+// It returns an error if required fields are missing or if the insert operation fails.
 func (r *SongRepository) Save(ctx context.Context, song entity.Song) (*entity.Song, error) {
 	const op = "adapter.repository.postgres.SongRepository.Save"
 
@@ -125,6 +134,8 @@ func (r *SongRepository) Save(ctx context.Context, song entity.Song) (*entity.So
 	return r.rowToEntity(savedRow), nil
 }
 
+// GetAll retrieves all songs from the database and returns them as a slice of entity.Song pointers.
+// It returns an error if the retrieval operation fails.
 func (r *SongRepository) GetAll(ctx context.Context) ([]*entity.Song, error) {
 	const op = "adapter.repository.postgres.SongRepository.GetAll"
 
@@ -145,6 +156,8 @@ func (r *SongRepository) GetAll(ctx context.Context) ([]*entity.Song, error) {
 	return r.rowsToEntities(rows), nil
 }
 
+// GetByID retrieves a song by its ID from the database.
+// It returns the corresponding entity.Song object or an error if the song is not found or if the retrieval fails.
 func (r *SongRepository) GetByID(ctx context.Context, songID uuid.UUID) (*entity.Song, error) {
 	const op = "adapter.repository.postgres.SongRepository.GetByID"
 
@@ -170,6 +183,8 @@ func (r *SongRepository) GetByID(ctx context.Context, songID uuid.UUID) (*entity
 	return r.rowToEntity(row), nil
 }
 
+// Update modifies an existing song in the database identified by its ID.
+// It returns the updated entity.Song object or an error if the song is not found or if the update fails.
 func (r *SongRepository) Update(ctx context.Context, songID uuid.UUID, song entity.Song) (*entity.Song, error) {
 	const op = "adapter.repository.postgres.SongRepository.Update"
 
@@ -203,6 +218,8 @@ func (r *SongRepository) Update(ctx context.Context, songID uuid.UUID, song enti
 	return r.rowToEntity(updatedRow), nil
 }
 
+// Delete removes a song from the database identified by its ID.
+// It returns the number of deleted rows or an error if the deletion fails or the song is not found.
 func (r *SongRepository) Delete(ctx context.Context, songID uuid.UUID) (int64, error) {
 	const op = "adapter.repository.postgres.SongRepository.Delete"
 
