@@ -136,11 +136,22 @@ func (r *SongRepository) Save(ctx context.Context, song entity.Song) (*entity.So
 
 // GetAll retrieves all songs from the database and returns them as a slice of entity.Song pointers.
 // It returns an error if the retrieval operation fails.
-func (r *SongRepository) GetAll(ctx context.Context) ([]*entity.Song, error) {
+func (r *SongRepository) GetAll(ctx context.Context, pagination entity.Pagination) ([]*entity.Song, error) {
 	const op = "adapter.repository.postgres.SongRepository.GetAll"
+
+	if pagination.Page < 1 {
+		pagination.Page = entity.DefaultPage
+	}
+	if pagination.Limit < 1 {
+		pagination.Limit = entity.DefaultLimit
+	}
+
+	fmt.Printf("%#v\n", pagination)
 
 	query, args, err := sq.
 		Select("*").From("songs").
+		Offset(uint64(pagination.GetOffset())).
+		Limit(uint64(pagination.Limit)).
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
 	if err != nil {
