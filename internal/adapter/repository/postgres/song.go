@@ -135,6 +135,7 @@ func (r *SongRepository) Save(ctx context.Context, song entity.Song) (*entity.So
 }
 
 // GetAll retrieves all songs from the database and returns them as a slice of entity.Song pointers.
+// It accepts entity.Pagination struct to control the result set size and offset.
 // It returns an error if the retrieval operation fails.
 func (r *SongRepository) GetAll(ctx context.Context, pagination entity.Pagination) ([]*entity.Song, error) {
 	const op = "adapter.repository.postgres.SongRepository.GetAll"

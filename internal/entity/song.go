@@ -31,11 +31,14 @@ type SongDetail struct {
 	Link        string    // Link to the song (e.g., streaming link)
 }
 
+// Pagination is used to control the page and limit of results for paginated queries.
 type Pagination struct {
 	Page  int
 	Limit int
 }
 
+// NewPagination returns a new Pagination struct with default values if the provided page or limit are invalid.
+// It ensures that the page and limit values are at least 1 and the default limit, respectively.
 func NewPagination(page, limit int) Pagination {
 	if page < 1 {
 		page = DefaultPage
@@ -50,6 +53,7 @@ func NewPagination(page, limit int) Pagination {
 	}
 }
 
+// GetOffset calculates and returns the offset based on the current page and limit.
 func (p *Pagination) GetOffset() int {
 	return (p.Page - 1) * p.Limit
 }
