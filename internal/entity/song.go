@@ -35,6 +35,16 @@ type SongDetail struct {
 	Link        string    // Link to the song (e.g., streaming link)
 }
 
+type SongText struct {
+	ID        uuid.UUID
+	Group     string
+	Song      string
+	Text      []string
+	CreateAt  time.Time
+	UpdatedAt time.Time
+	Pagination
+}
+
 // SongFilter is used to filter song queries by various attributes.
 type SongFilter struct {
 	Group             string    // Filter by group name (partial match)
