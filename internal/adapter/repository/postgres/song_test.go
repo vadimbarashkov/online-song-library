@@ -3,9 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"database/sql/driver"
 	"errors"
-	"fmt"
 	"testing"
 	"time"
 
@@ -114,45 +112,38 @@ func TestSongRepository_Save(t *testing.T) {
 }
 
 func TestSongRepository_GetAll(t *testing.T) {
-	values := make([][]driver.Value, 0, 100)
-	for i := 0; i < cap(values); i++ {
-		groupName := fmt.Sprintf("Group %d", i)
-		song := fmt.Sprintf("Song %d", i)
-
-		values = append(values, []driver.Value{fixedUUID, groupName, song, fixedTime, "Test Text", "https://example.com", fixedTime, fixedTime})
-	}
-
 	t.Run("unknown database error", func(t *testing.T) {
 		repo, mock := initSongRepository(t)
 
 		mock.
-			ExpectQuery(`SELECT (.+) FROM songs`).
+			ExpectQuery(`SELECT (.+) FROM songs LIMIT 20 OFFSET 0`).
 			WillReturnError(errUnknown)
 
-		res, err := repo.GetAll(context.Background(), entity.SongFilter{}, entity.Pagination{})
+		res, err := repo.GetAll(context.Background(), nil, nil)
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, errUnknown)
 		assert.Nil(t, res)
 	})
 
-	t.Run("success with empty pagination", func(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
 		repo, mock := initSongRepository(t)
 
-		rows := sqlmock.NewRows(columns).AddRows(values[:20]...)
+		rows := sqlmock.NewRows(columns).
+			AddRow(fixedUUID, "Test Group", "Test Song", fixedTime, "Test Text", "https://example.com", fixedTime, fixedTime)
 
 		mock.
-			ExpectQuery(`SELECT (.+) FROM songs`).
+			ExpectQuery(`SELECT (.+) FROM songs LIMIT 20 OFFSET 0`).
 			WillReturnRows(rows)
 
-		songs, err := repo.GetAll(context.Background(), entity.SongFilter{}, entity.Pagination{})
+		songs, err := repo.GetAll(context.Background(), nil, nil)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, songs)
-		assert.Len(t, songs, 20)
+		assert.Len(t, songs, 1)
 		assert.Equal(t, fixedUUID, songs[0].ID)
-		assert.Equal(t, "Group 0", songs[0].Group)
-		assert.Equal(t, "Song 0", songs[0].Song)
+		assert.Equal(t, "Test Group", songs[0].Group)
+		assert.Equal(t, "Test Song", songs[0].Song)
 		assert.Equal(t, fixedTime, songs[0].SongDetail.ReleaseDate)
 		assert.Equal(t, "Test Text", songs[0].SongDetail.Text)
 		assert.Equal(t, "https://example.com", songs[0].Link)
@@ -160,23 +151,53 @@ func TestSongRepository_GetAll(t *testing.T) {
 		assert.Equal(t, fixedTime, songs[0].UpdatedAt)
 	})
 
-	t.Run("success with not empty pagination", func(t *testing.T) {
+	t.Run("success with pagination", func(t *testing.T) {
 		repo, mock := initSongRepository(t)
 
-		rows := sqlmock.NewRows(columns).AddRows(values[40:50]...)
+		rows := sqlmock.NewRows(columns).
+			AddRow(fixedUUID, "Test Group", "Test Song", fixedTime, "Test Text", "https://example.com", fixedTime, fixedTime)
 
 		mock.
-			ExpectQuery(`SELECT (.+) FROM songs`).
+			ExpectQuery(`SELECT (.+) FROM songs LIMIT 10 OFFSET 40`).
 			WillReturnRows(rows)
 
-		songs, err := repo.GetAll(context.Background(), entity.SongFilter{}, entity.NewPagination(5, 10))
+		songs, err := repo.GetAll(context.Background(), nil, entity.NewPagination(5, 10))
 
 		assert.NoError(t, err)
 		assert.NotNil(t, songs)
-		assert.Len(t, songs, 10)
+		assert.Len(t, songs, 1)
 		assert.Equal(t, fixedUUID, songs[0].ID)
-		assert.Equal(t, "Group 40", songs[0].Group)
-		assert.Equal(t, "Song 40", songs[0].Song)
+		assert.Equal(t, "Test Group", songs[0].Group)
+		assert.Equal(t, "Test Song", songs[0].Song)
+		assert.Equal(t, fixedTime, songs[0].SongDetail.ReleaseDate)
+		assert.Equal(t, "Test Text", songs[0].SongDetail.Text)
+		assert.Equal(t, "https://example.com", songs[0].Link)
+		assert.Equal(t, fixedTime, songs[0].CreatedAt)
+		assert.Equal(t, fixedTime, songs[0].UpdatedAt)
+	})
+
+	t.Run("success with filters", func(t *testing.T) {
+		repo, mock := initSongRepository(t)
+
+		rows := sqlmock.NewRows(columns).
+			AddRow(fixedUUID, "Test Group", "Test Song", fixedTime, "Test Text", "https://example.com", fixedTime, fixedTime)
+
+		mock.
+			ExpectQuery(`SELECT (.+) FROM songs WHERE song ILIKE \$1 AND EXTRACT\(YEAR FROM release_date\) = \$2 LIMIT 20 OFFSET 0`).
+			WithArgs("%Song%", fixedTime.Year()).
+			WillReturnRows(rows)
+
+		songs, err := repo.GetAll(context.Background(), &entity.SongFilter{
+			Song:        "Song",
+			ReleaseYear: fixedTime.Year(),
+		}, nil)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, songs)
+		assert.Len(t, songs, 1)
+		assert.Equal(t, fixedUUID, songs[0].ID)
+		assert.Equal(t, "Test Group", songs[0].Group)
+		assert.Equal(t, "Test Song", songs[0].Song)
 		assert.Equal(t, fixedTime, songs[0].SongDetail.ReleaseDate)
 		assert.Equal(t, "Test Text", songs[0].SongDetail.Text)
 		assert.Equal(t, "https://example.com", songs[0].Link)

@@ -56,7 +56,7 @@ type Pagination struct {
 // NewPagination creates and returns a new Pagination object with the specified page and limit values.
 // If the provided page is less than 1, it defaults to DefaultPage. Similarly, if the limit is less than 1,
 // it defaults to DefaultLimit. This ensures that invalid values do not disrupt pagination logic.
-func NewPagination(page, limit int) Pagination {
+func NewPagination(page, limit int) *Pagination {
 	if page < 1 {
 		page = DefaultPage
 	}
@@ -64,7 +64,7 @@ func NewPagination(page, limit int) Pagination {
 		limit = DefaultLimit
 	}
 
-	return Pagination{
+	return &Pagination{
 		Page:  page,
 		Limit: limit,
 	}

@@ -112,7 +112,11 @@ func (r *SongRepository) rowsToEntities(rows []songRow) []*entity.Song {
 
 // setFilterConditions adds SQL WHERE conditions to the query builder (squirrel.SelectBuilder) based on the
 // provided SongFilter. It allows filtering the results by group name, song title, release year/date, and text content.
-func (r *SongRepository) setFilterConditions(sb sq.SelectBuilder, filter entity.SongFilter) sq.SelectBuilder {
+func (r *SongRepository) setFilterConditions(sb sq.SelectBuilder, filter *entity.SongFilter) sq.SelectBuilder {
+	if filter == nil {
+		return sb
+	}
+
 	if filter.Group != "" {
 		sb = sb.Where("group_name ILIKE ?", fmt.Sprint("%", filter.Group, "%"))
 	}
@@ -175,14 +179,21 @@ func (r *SongRepository) Save(ctx context.Context, song entity.Song) (*entity.So
 // GetAll retrieves all song records that match the provided filter conditions and pagination settings.
 // It uses the SongFilter struct for filtering the results and Pagination for controlling the result set size.
 // The function returns a slice of song entities or an error if the operation fails.
-func (r *SongRepository) GetAll(ctx context.Context, filter entity.SongFilter, pagination entity.Pagination) ([]*entity.Song, error) {
+func (r *SongRepository) GetAll(ctx context.Context, filter *entity.SongFilter, pagination *entity.Pagination) ([]*entity.Song, error) {
 	const op = "adapter.repository.postgres.SongRepository.GetAll"
 
-	if pagination.Page < 1 {
-		pagination.Page = entity.DefaultPage
-	}
-	if pagination.Limit < 1 {
-		pagination.Limit = entity.DefaultLimit
+	if pagination != nil {
+		if pagination.Page < 1 {
+			pagination.Page = entity.DefaultPage
+		}
+		if pagination.Limit < 1 {
+			pagination.Limit = entity.DefaultLimit
+		}
+	} else {
+		pagination = &entity.Pagination{
+			Page:  entity.DefaultPage,
+			Limit: entity.DefaultLimit,
+		}
 	}
 
 	sb := sq.
