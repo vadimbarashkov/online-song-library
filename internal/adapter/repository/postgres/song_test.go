@@ -129,7 +129,7 @@ func TestSongRepository_GetAll(t *testing.T) {
 			ExpectQuery(`SELECT (.+) FROM songs`).
 			WillReturnError(errUnknown)
 
-		res, err := repo.GetAll(context.Background(), entity.Pagination{})
+		res, err := repo.GetAll(context.Background(), entity.SongFilter{}, entity.Pagination{})
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, errUnknown)
@@ -145,7 +145,7 @@ func TestSongRepository_GetAll(t *testing.T) {
 			ExpectQuery(`SELECT (.+) FROM songs`).
 			WillReturnRows(rows)
 
-		songs, err := repo.GetAll(context.Background(), entity.Pagination{})
+		songs, err := repo.GetAll(context.Background(), entity.SongFilter{}, entity.Pagination{})
 
 		assert.NoError(t, err)
 		assert.NotNil(t, songs)
@@ -169,7 +169,7 @@ func TestSongRepository_GetAll(t *testing.T) {
 			ExpectQuery(`SELECT (.+) FROM songs`).
 			WillReturnRows(rows)
 
-		songs, err := repo.GetAll(context.Background(), entity.NewPagination(5, 10))
+		songs, err := repo.GetAll(context.Background(), entity.SongFilter{}, entity.NewPagination(5, 10))
 
 		assert.NoError(t, err)
 		assert.NotNil(t, songs)
