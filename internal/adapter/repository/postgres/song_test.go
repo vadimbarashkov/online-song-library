@@ -20,6 +20,7 @@ var (
 
 	columns = []string{"id", "group_name", "song", "release_date", "text", "link", "created_at", "updated_at"}
 
+	fixedUUID = uuid.New()
 	fixedTime = time.Now()
 )
 
@@ -78,10 +79,9 @@ func TestSongRepository_Save(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		repo, mock := initSongRepository(t)
-		songID := uuid.New()
 
 		rows := sqlmock.NewRows(columns).
-			AddRow(songID, "Test Group", "Test Song", fixedTime, "Test Text", "https://example.com", fixedTime, fixedTime)
+			AddRow(fixedUUID, "Test Group", "Test Song", fixedTime, "Test Text", "https://example.com", fixedTime, fixedTime)
 
 		mock.
 			ExpectQuery(`INSERT INTO songs`).
@@ -100,7 +100,7 @@ func TestSongRepository_Save(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotNil(t, song)
-		assert.Equal(t, songID, song.ID)
+		assert.Equal(t, fixedUUID, song.ID)
 		assert.Equal(t, "Test Group", song.Group)
 		assert.Equal(t, "Test Song", song.Song)
 		assert.Equal(t, fixedTime, song.SongDetail.ReleaseDate)
@@ -116,10 +116,10 @@ func TestSongRepository_GetAll(t *testing.T) {
 		repo, mock := initSongRepository(t)
 
 		mock.
-			ExpectQuery(`SELECT (.+) FROM songs`).
+			ExpectQuery(`SELECT (.+) FROM songs LIMIT 20 OFFSET 0`).
 			WillReturnError(errUnknown)
 
-		res, err := repo.GetAll(context.Background())
+		res, err := repo.GetAll(context.Background(), nil, nil)
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, errUnknown)
@@ -128,26 +128,79 @@ func TestSongRepository_GetAll(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		repo, mock := initSongRepository(t)
-		songID := uuid.New()
 
 		rows := sqlmock.NewRows(columns).
-			AddRow(songID, "Test Group", "Test Song", fixedTime, "Test Text", "https://example.com", fixedTime, fixedTime)
+			AddRow(fixedUUID, "Test Group", "Test Song", fixedTime, "Test Text", "https://example.com", fixedTime, fixedTime)
 
 		mock.
-			ExpectQuery(`SELECT (.+) FROM songs`).
+			ExpectQuery(`SELECT (.+) FROM songs LIMIT 20 OFFSET 0`).
 			WillReturnRows(rows)
 
-		songs, err := repo.GetAll(context.Background())
+		songs, err := repo.GetAll(context.Background(), nil, nil)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, songs)
 		assert.Len(t, songs, 1)
-		assert.Equal(t, songID, songs[0].ID)
+		assert.Equal(t, fixedUUID, songs[0].ID)
 		assert.Equal(t, "Test Group", songs[0].Group)
 		assert.Equal(t, "Test Song", songs[0].Song)
 		assert.Equal(t, fixedTime, songs[0].SongDetail.ReleaseDate)
 		assert.Equal(t, "Test Text", songs[0].SongDetail.Text)
-		assert.Equal(t, "https://example.com", songs[0].SongDetail.Link)
+		assert.Equal(t, "https://example.com", songs[0].Link)
+		assert.Equal(t, fixedTime, songs[0].CreatedAt)
+		assert.Equal(t, fixedTime, songs[0].UpdatedAt)
+	})
+
+	t.Run("success with pagination", func(t *testing.T) {
+		repo, mock := initSongRepository(t)
+
+		rows := sqlmock.NewRows(columns).
+			AddRow(fixedUUID, "Test Group", "Test Song", fixedTime, "Test Text", "https://example.com", fixedTime, fixedTime)
+
+		mock.
+			ExpectQuery(`SELECT (.+) FROM songs LIMIT 10 OFFSET 40`).
+			WillReturnRows(rows)
+
+		songs, err := repo.GetAll(context.Background(), nil, entity.NewPagination(5, 10))
+
+		assert.NoError(t, err)
+		assert.NotNil(t, songs)
+		assert.Len(t, songs, 1)
+		assert.Equal(t, fixedUUID, songs[0].ID)
+		assert.Equal(t, "Test Group", songs[0].Group)
+		assert.Equal(t, "Test Song", songs[0].Song)
+		assert.Equal(t, fixedTime, songs[0].SongDetail.ReleaseDate)
+		assert.Equal(t, "Test Text", songs[0].SongDetail.Text)
+		assert.Equal(t, "https://example.com", songs[0].Link)
+		assert.Equal(t, fixedTime, songs[0].CreatedAt)
+		assert.Equal(t, fixedTime, songs[0].UpdatedAt)
+	})
+
+	t.Run("success with filters", func(t *testing.T) {
+		repo, mock := initSongRepository(t)
+
+		rows := sqlmock.NewRows(columns).
+			AddRow(fixedUUID, "Test Group", "Test Song", fixedTime, "Test Text", "https://example.com", fixedTime, fixedTime)
+
+		mock.
+			ExpectQuery(`SELECT (.+) FROM songs WHERE song ILIKE \$1 AND EXTRACT\(YEAR FROM release_date\) = \$2 LIMIT 20 OFFSET 0`).
+			WithArgs("%Song%", fixedTime.Year()).
+			WillReturnRows(rows)
+
+		songs, err := repo.GetAll(context.Background(), &entity.SongFilter{
+			Song:        "Song",
+			ReleaseYear: fixedTime.Year(),
+		}, nil)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, songs)
+		assert.Len(t, songs, 1)
+		assert.Equal(t, fixedUUID, songs[0].ID)
+		assert.Equal(t, "Test Group", songs[0].Group)
+		assert.Equal(t, "Test Song", songs[0].Song)
+		assert.Equal(t, fixedTime, songs[0].SongDetail.ReleaseDate)
+		assert.Equal(t, "Test Text", songs[0].SongDetail.Text)
+		assert.Equal(t, "https://example.com", songs[0].Link)
 		assert.Equal(t, fixedTime, songs[0].CreatedAt)
 		assert.Equal(t, fixedTime, songs[0].UpdatedAt)
 	})
@@ -156,14 +209,13 @@ func TestSongRepository_GetAll(t *testing.T) {
 func TestSongRepository_GetByID(t *testing.T) {
 	t.Run("song not found", func(t *testing.T) {
 		repo, mock := initSongRepository(t)
-		songID := uuid.New()
 
 		mock.
 			ExpectQuery(`SELECT (.+) FROM songs`).
-			WithArgs(songID).
+			WithArgs(fixedUUID).
 			WillReturnError(sql.ErrNoRows)
 
-		res, err := repo.GetByID(context.Background(), songID)
+		res, err := repo.GetByID(context.Background(), fixedUUID)
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, entity.ErrSongNotFound)
@@ -172,14 +224,13 @@ func TestSongRepository_GetByID(t *testing.T) {
 
 	t.Run("unknown database error", func(t *testing.T) {
 		repo, mock := initSongRepository(t)
-		songID := uuid.New()
 
 		mock.
 			ExpectQuery(`SELECT (.+) FROM songs`).
-			WithArgs(songID).
+			WithArgs(fixedUUID).
 			WillReturnError(errUnknown)
 
-		res, err := repo.GetByID(context.Background(), songID)
+		res, err := repo.GetByID(context.Background(), fixedUUID)
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, errUnknown)
@@ -188,21 +239,20 @@ func TestSongRepository_GetByID(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		repo, mock := initSongRepository(t)
-		songID := uuid.New()
 
 		rows := sqlmock.NewRows(columns).
-			AddRow(songID, "Test Group", "Test Song", fixedTime, "Test Text", "https://example.com", fixedTime, fixedTime)
+			AddRow(fixedUUID, "Test Group", "Test Song", fixedTime, "Test Text", "https://example.com", fixedTime, fixedTime)
 
 		mock.
 			ExpectQuery(`SELECT (.+) FROM songs`).
-			WithArgs(songID).
+			WithArgs(fixedUUID).
 			WillReturnRows(rows)
 
-		song, err := repo.GetByID(context.Background(), songID)
+		song, err := repo.GetByID(context.Background(), fixedUUID)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, song)
-		assert.Equal(t, songID, song.ID)
+		assert.Equal(t, fixedUUID, song.ID)
 		assert.Equal(t, "Test Group", song.Group)
 		assert.Equal(t, "Test Song", song.Song)
 		assert.Equal(t, fixedTime, song.SongDetail.ReleaseDate)
@@ -225,14 +275,13 @@ func TestSongRepository_Update(t *testing.T) {
 
 	t.Run("song not found", func(t *testing.T) {
 		repo, mock := initSongRepository(t)
-		songID := uuid.New()
 
 		mock.
 			ExpectQuery(`UPDATE songs`).
-			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), songID).
+			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), fixedUUID).
 			WillReturnError(sql.ErrNoRows)
 
-		res, err := repo.Update(context.Background(), songID, entity.Song{
+		res, err := repo.Update(context.Background(), fixedUUID, entity.Song{
 			SongDetail: entity.SongDetail{
 				Text: "New Test Text",
 				Link: "https://new-example.com",
@@ -246,14 +295,13 @@ func TestSongRepository_Update(t *testing.T) {
 
 	t.Run("unknown database error", func(t *testing.T) {
 		repo, mock := initSongRepository(t)
-		songID := uuid.New()
 
 		mock.
 			ExpectQuery(`UPDATE songs`).
-			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), songID).
+			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), fixedUUID).
 			WillReturnError(errUnknown)
 
-		res, err := repo.Update(context.Background(), songID, entity.Song{
+		res, err := repo.Update(context.Background(), fixedUUID, entity.Song{
 			SongDetail: entity.SongDetail{
 				Text: "New Test Text",
 				Link: "https://new-example.com",
@@ -267,17 +315,16 @@ func TestSongRepository_Update(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		repo, mock := initSongRepository(t)
-		songID := uuid.New()
 
 		rows := sqlmock.NewRows(columns).
-			AddRow(songID, "Test Group", "Test Song", fixedTime, "New Test Text", "https://new-example.com", fixedTime, fixedTime)
+			AddRow(fixedUUID, "Test Group", "Test Song", fixedTime, "New Test Text", "https://new-example.com", fixedTime, fixedTime)
 
 		mock.
 			ExpectQuery(`UPDATE songs`).
-			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), songID).
+			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), fixedUUID).
 			WillReturnRows(rows)
 
-		song, err := repo.Update(context.Background(), songID, entity.Song{
+		song, err := repo.Update(context.Background(), fixedUUID, entity.Song{
 			SongDetail: entity.SongDetail{
 				Text: "New Test Text",
 				Link: "https://new-example.com",
@@ -286,7 +333,7 @@ func TestSongRepository_Update(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotNil(t, song)
-		assert.Equal(t, songID, song.ID)
+		assert.Equal(t, fixedUUID, song.ID)
 		assert.Equal(t, "Test Group", song.Group)
 		assert.Equal(t, "Test Song", song.Song)
 		assert.Equal(t, fixedTime, song.SongDetail.ReleaseDate)
@@ -300,14 +347,13 @@ func TestSongRepository_Update(t *testing.T) {
 func TestSongRepository_Delete(t *testing.T) {
 	t.Run("unknown database error", func(t *testing.T) {
 		repo, mock := initSongRepository(t)
-		songID := uuid.New()
 
 		mock.
 			ExpectExec(`DELETE FROM songs`).
-			WithArgs(songID).
+			WithArgs(fixedUUID).
 			WillReturnError(errUnknown)
 
-		deleted, err := repo.Delete(context.Background(), songID)
+		deleted, err := repo.Delete(context.Background(), fixedUUID)
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, errUnknown)
@@ -316,14 +362,13 @@ func TestSongRepository_Delete(t *testing.T) {
 
 	t.Run("rows affected error", func(t *testing.T) {
 		repo, mock := initSongRepository(t)
-		songID := uuid.New()
 
 		mock.
 			ExpectExec(`DELETE FROM songs`).
-			WithArgs(songID).
+			WithArgs(fixedUUID).
 			WillReturnResult(sqlmock.NewErrorResult(errAffectedRows))
 
-		deleted, err := repo.Delete(context.Background(), songID)
+		deleted, err := repo.Delete(context.Background(), fixedUUID)
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, errAffectedRows)
@@ -332,14 +377,13 @@ func TestSongRepository_Delete(t *testing.T) {
 
 	t.Run("song not found", func(t *testing.T) {
 		repo, mock := initSongRepository(t)
-		songID := uuid.New()
 
 		mock.
 			ExpectExec(`DELETE FROM songs`).
-			WithArgs(songID).
+			WithArgs(fixedUUID).
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
-		deleted, err := repo.Delete(context.Background(), songID)
+		deleted, err := repo.Delete(context.Background(), fixedUUID)
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, entity.ErrSongNotFound)
@@ -348,14 +392,13 @@ func TestSongRepository_Delete(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		repo, mock := initSongRepository(t)
-		songID := uuid.New()
 
 		mock.
 			ExpectExec(`DELETE FROM songs`).
-			WithArgs(songID).
+			WithArgs(fixedUUID).
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
-		deleted, err := repo.Delete(context.Background(), songID)
+		deleted, err := repo.Delete(context.Background(), fixedUUID)
 
 		assert.NoError(t, err)
 		assert.Equal(t, int64(1), deleted)
