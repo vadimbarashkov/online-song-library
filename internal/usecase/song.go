@@ -65,6 +65,13 @@ func (uc *SongUseCase) FetchSongs(ctx context.Context, filter *entity.SongFilter
 func (uc *SongUseCase) FetchSongText(ctx context.Context, songID uuid.UUID, pagination *entity.Pagination) (*entity.SongText, error) {
 	const op = "usecase.FetchSongText"
 
+	song, err := uc.songRepo.GetByID(ctx, songID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: failed to fetch song: %w", op, err)
+	}
+
+	verses := strings.Split(song.SongDetail.Text, "\n\n")
+
 	if pagination != nil {
 		if pagination.Page < 1 {
 			pagination.Page = entity.DefaultPage
@@ -76,26 +83,21 @@ func (uc *SongUseCase) FetchSongText(ctx context.Context, songID uuid.UUID, pagi
 		pagination = entity.NewPagination(entity.DefaultPage, entity.DefaultLimit)
 	}
 
-	song, err := uc.songRepo.GetByID(ctx, songID)
-	if err != nil {
-		return nil, fmt.Errorf("%s: failed to fetch song test: %w", op, err)
-	}
-
-	verses := strings.Split(song.SongDetail.Text, "\n\n")
 	offset := pagination.GetOffset()
-
 	if offset > len(verses) {
 		offset = len(verses)
 	}
-	if pagination.Limit > len(verses) {
-		pagination.Limit = len(verses)
+
+	limit := offset + pagination.Limit
+	if limit > len(verses) {
+		limit = len(verses)
 	}
 
 	return &entity.SongText{
 		ID:         song.ID,
 		Group:      song.Group,
 		Song:       song.Song,
-		Text:       verses[offset:pagination.Limit],
+		Text:       verses[offset:limit],
 		CreateAt:   song.CreatedAt,
 		UpdatedAt:  song.UpdatedAt,
 		Pagination: *pagination,
