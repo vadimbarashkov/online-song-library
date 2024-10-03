@@ -9,10 +9,12 @@ import (
 	"github.com/vadimbarashkov/online-song-library/internal/entity"
 )
 
+// musicInfoAPI defines the interface for fetching song information from an external Music Info API.
 type musicInfoAPI interface {
 	FetchSongInfo(ctx context.Context, group, song string) (*entity.SongDetail, error)
 }
 
+// songRepository defines the interface for song repository operations.
 type songRepository interface {
 	Save(ctx context.Context, song entity.Song) (*entity.Song, error)
 	GetAll(ctx context.Context, filter *entity.SongFilter, pagination *entity.Pagination) ([]*entity.Song, error)
@@ -21,11 +23,13 @@ type songRepository interface {
 	Delete(ctx context.Context, songID uuid.UUID) (int64, error)
 }
 
+// SongUseCase encapsulates the business logic for managing songs.
 type SongUseCase struct {
 	musicInfoApi musicInfoAPI
 	songRepo     songRepository
 }
 
+// NewSongUseCase creates a new instance of SongUseCase with the provided musicInfoAPI and songRepository implementations.
 func NewSongUseCase(musicInfoAPI musicInfoAPI, songRepo songRepository) *SongUseCase {
 	return &SongUseCase{
 		musicInfoApi: musicInfoAPI,
@@ -33,6 +37,8 @@ func NewSongUseCase(musicInfoAPI musicInfoAPI, songRepo songRepository) *SongUse
 	}
 }
 
+// CreateSong creates a new song by fetching its details from the music info API and saving it to the repository.
+// It returns the saved song or an error if the process fails.
 func (uc *SongUseCase) CreateSong(ctx context.Context, song entity.Song) (*entity.Song, error) {
 	const op = "usecase.CreateSong"
 
@@ -51,6 +57,8 @@ func (uc *SongUseCase) CreateSong(ctx context.Context, song entity.Song) (*entit
 	return savedSong, nil
 }
 
+// FetchSongs retrieves all songs from the repository that match the provided filter and pagination parameters.
+// It returns a slice of songs or an error if the retrieval fails.
 func (uc *SongUseCase) FetchSongs(ctx context.Context, filter *entity.SongFilter, pagination *entity.Pagination) ([]*entity.Song, error) {
 	const op = "usecase.FetchSongs"
 
@@ -62,6 +70,8 @@ func (uc *SongUseCase) FetchSongs(ctx context.Context, filter *entity.SongFilter
 	return songs, nil
 }
 
+// FetchSongText retrieves the text of a specific song by its ID, applying pagination if specified.
+// It returns the song text or an error if the retrieval fails.
 func (uc *SongUseCase) FetchSongText(ctx context.Context, songID uuid.UUID, pagination *entity.Pagination) (*entity.SongText, error) {
 	const op = "usecase.FetchSongText"
 
@@ -104,6 +114,8 @@ func (uc *SongUseCase) FetchSongText(ctx context.Context, songID uuid.UUID, pagi
 	}, nil
 }
 
+// ModifySong updates an existing song in the repository based on the provided song ID and new song data.
+// It returns the updated song or an error if the modification fails.
 func (uc *SongUseCase) ModifySong(ctx context.Context, songID uuid.UUID, song entity.Song) (*entity.Song, error) {
 	const op = "usecase.ModifySong"
 
@@ -115,6 +127,8 @@ func (uc *SongUseCase) ModifySong(ctx context.Context, songID uuid.UUID, song en
 	return updatedSong, nil
 }
 
+// RemoveSong deletes a song from the repository based on its ID.
+// It returns the number of deleted records or an error if the deletion fails.
 func (uc *SongUseCase) RemoveSong(ctx context.Context, songID uuid.UUID) (int64, error) {
 	const op = "usecase.RemoveSong"
 
