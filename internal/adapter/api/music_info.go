@@ -11,17 +11,21 @@ import (
 	"github.com/vadimbarashkov/online-song-library/internal/entity"
 )
 
+// songDetailSchema defines the structure of the song details returned by the external API.
 type songDetailSchema struct {
 	ReleaseDate time.Time `json:"releaseDate"`
 	Text        string    `json:"text"`
 	Link        string    `json:"link"`
 }
 
+// MusicInfoAPI is an API client used to fetch song information from an external music service.
 type MusicInfoAPI struct {
 	baseURL string
 	client  *http.Client
 }
 
+// NewMusicInfoAPI creates a new instance of MusicInfoAPI with the provided
+// base URL and HTTP client. If no client is provided, the default client is used.
 func NewMusicInfoAPI(baseURL string, client *http.Client) *MusicInfoAPI {
 	if client == nil {
 		client = http.DefaultClient
@@ -33,6 +37,8 @@ func NewMusicInfoAPI(baseURL string, client *http.Client) *MusicInfoAPI {
 	}
 }
 
+// songDetailSchemaToEntity maps the external API song detail schema to the
+// internal entity.SongDetail structure used within the application.
 func (api *MusicInfoAPI) songDetailSchemaToEntity(songDetail songDetailSchema) *entity.SongDetail {
 	return &entity.SongDetail{
 		ReleaseDate: songDetail.ReleaseDate,
@@ -41,6 +47,8 @@ func (api *MusicInfoAPI) songDetailSchemaToEntity(songDetail songDetailSchema) *
 	}
 }
 
+// FetchSongInfo retrieves song details from the external API by
+// performing an HTTP GET request. It requires the song group and title as parameters.
 func (api *MusicInfoAPI) FetchSongInfo(ctx context.Context, group, song string) (*entity.SongDetail, error) {
 	const op = "adapter.api.MusicInfoAPI.FetchSongInfo"
 
