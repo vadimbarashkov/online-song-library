@@ -17,9 +17,11 @@ const (
 
 // Config holds the configuration settings for the application.
 type Config struct {
-	Env        string `env:"ENV" envDefault:"dev"`
-	HTTPServer `envPrefix:"HTTP_SERVER_"`
-	Postgres   `envPrefix:"POSTGRES_"`
+	Env            string `env:"ENV" envDefault:"dev"`
+	MigrationsPath string `env:"MIGRATIONS_PATH" envDefault:"migrations"`
+	MusicInfoAPI   string `env:"MUSIC_INFO_API,required"`
+	HTTPServer     `envPrefix:"HTTP_SERVER_"`
+	Postgres       `envPrefix:"POSTGRES_"`
 }
 
 // HTTPServer contains settings related to the HTTP server.

@@ -19,8 +19,6 @@ import (
 	repo "github.com/vadimbarashkov/online-song-library/internal/adapter/repository/postgres"
 )
 
-const migrationsPath = "file://migrations"
-
 func Run(ctx context.Context, cfg *config.Config) error {
 	const op = "app.Run"
 
@@ -30,12 +28,12 @@ func Run(ctx context.Context, cfg *config.Config) error {
 	}
 	defer db.Close()
 
-	if err := postgres.RunMigrations(migrationsPath, cfg.Postgres.DSN()); err != nil {
+	if err := postgres.RunMigrations(cfg.MigrationsPath, cfg.Postgres.DSN()); err != nil {
 		return fmt.Errorf("%s: failed to run migrations: %w", op, err)
 	}
 
 	songRepo := repo.NewSongRepository(db)
-	musicInfoAPI := api.NewMusicInfoAPI("http://example.com", nil)
+	musicInfoAPI := api.NewMusicInfoAPI(cfg.MusicInfoAPI, nil)
 	songUseCase := usecase.NewSongUseCase(musicInfoAPI, songRepo)
 
 	logger := setupLogger(cfg.Env)
