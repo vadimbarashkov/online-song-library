@@ -1,10 +1,10 @@
 CREATE TABLE IF NOT EXISTS songs(
     id UUID DEFAULT gen_random_uuid(),
     group_name VARCHAR(255) NOT NULL,
-    song VARCHAR(255) NOT NULL,
-    release_date DATE NOT NULL,
-    text TEXT NOT NULL,
-    link VARCHAR(2048) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    release_date DATE,
+    text TEXT,
+    link VARCHAR(2048),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY(id)

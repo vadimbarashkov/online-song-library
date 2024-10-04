@@ -81,34 +81,50 @@ func (_c *MockSongRepository_Delete_Call) RunAndReturn(run func(context.Context,
 	return _c
 }
 
-// GetAll provides a mock function with given fields: ctx, filter, pagination
-func (_m *MockSongRepository) GetAll(ctx context.Context, filter *entity.SongFilter, pagination *entity.Pagination) ([]*entity.Song, error) {
-	ret := _m.Called(ctx, filter, pagination)
+// GetAll provides a mock function with given fields: ctx, pagination, filters
+func (_m *MockSongRepository) GetAll(ctx context.Context, pagination entity.Pagination, filters ...entity.SongFilter) ([]*entity.Song, *entity.Pagination, error) {
+	_va := make([]interface{}, len(filters))
+	for _i := range filters {
+		_va[_i] = filters[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, pagination)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetAll")
 	}
 
 	var r0 []*entity.Song
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *entity.SongFilter, *entity.Pagination) ([]*entity.Song, error)); ok {
-		return rf(ctx, filter, pagination)
+	var r1 *entity.Pagination
+	var r2 error
+	if rf, ok := ret.Get(0).(func(context.Context, entity.Pagination, ...entity.SongFilter) ([]*entity.Song, *entity.Pagination, error)); ok {
+		return rf(ctx, pagination, filters...)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, *entity.SongFilter, *entity.Pagination) []*entity.Song); ok {
-		r0 = rf(ctx, filter, pagination)
+	if rf, ok := ret.Get(0).(func(context.Context, entity.Pagination, ...entity.SongFilter) []*entity.Song); ok {
+		r0 = rf(ctx, pagination, filters...)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*entity.Song)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, *entity.SongFilter, *entity.Pagination) error); ok {
-		r1 = rf(ctx, filter, pagination)
+	if rf, ok := ret.Get(1).(func(context.Context, entity.Pagination, ...entity.SongFilter) *entity.Pagination); ok {
+		r1 = rf(ctx, pagination, filters...)
 	} else {
-		r1 = ret.Error(1)
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*entity.Pagination)
+		}
 	}
 
-	return r0, r1
+	if rf, ok := ret.Get(2).(func(context.Context, entity.Pagination, ...entity.SongFilter) error); ok {
+		r2 = rf(ctx, pagination, filters...)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
 }
 
 // MockSongRepository_GetAll_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAll'
@@ -118,25 +134,32 @@ type MockSongRepository_GetAll_Call struct {
 
 // GetAll is a helper method to define mock.On call
 //   - ctx context.Context
-//   - filter *entity.SongFilter
-//   - pagination *entity.Pagination
-func (_e *MockSongRepository_Expecter) GetAll(ctx interface{}, filter interface{}, pagination interface{}) *MockSongRepository_GetAll_Call {
-	return &MockSongRepository_GetAll_Call{Call: _e.mock.On("GetAll", ctx, filter, pagination)}
+//   - pagination entity.Pagination
+//   - filters ...entity.SongFilter
+func (_e *MockSongRepository_Expecter) GetAll(ctx interface{}, pagination interface{}, filters ...interface{}) *MockSongRepository_GetAll_Call {
+	return &MockSongRepository_GetAll_Call{Call: _e.mock.On("GetAll",
+		append([]interface{}{ctx, pagination}, filters...)...)}
 }
 
-func (_c *MockSongRepository_GetAll_Call) Run(run func(ctx context.Context, filter *entity.SongFilter, pagination *entity.Pagination)) *MockSongRepository_GetAll_Call {
+func (_c *MockSongRepository_GetAll_Call) Run(run func(ctx context.Context, pagination entity.Pagination, filters ...entity.SongFilter)) *MockSongRepository_GetAll_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*entity.SongFilter), args[2].(*entity.Pagination))
+		variadicArgs := make([]entity.SongFilter, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(entity.SongFilter)
+			}
+		}
+		run(args[0].(context.Context), args[1].(entity.Pagination), variadicArgs...)
 	})
 	return _c
 }
 
-func (_c *MockSongRepository_GetAll_Call) Return(_a0 []*entity.Song, _a1 error) *MockSongRepository_GetAll_Call {
-	_c.Call.Return(_a0, _a1)
+func (_c *MockSongRepository_GetAll_Call) Return(_a0 []*entity.Song, _a1 *entity.Pagination, _a2 error) *MockSongRepository_GetAll_Call {
+	_c.Call.Return(_a0, _a1, _a2)
 	return _c
 }
 
-func (_c *MockSongRepository_GetAll_Call) RunAndReturn(run func(context.Context, *entity.SongFilter, *entity.Pagination) ([]*entity.Song, error)) *MockSongRepository_GetAll_Call {
+func (_c *MockSongRepository_GetAll_Call) RunAndReturn(run func(context.Context, entity.Pagination, ...entity.SongFilter) ([]*entity.Song, *entity.Pagination, error)) *MockSongRepository_GetAll_Call {
 	_c.Call.Return(run)
 	return _c
 }

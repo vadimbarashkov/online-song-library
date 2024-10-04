@@ -49,7 +49,7 @@ func (api *MusicInfoAPI) songDetailSchemaToEntity(songDetail songDetailSchema) *
 
 // FetchSongInfo retrieves song details from the external API by
 // performing an HTTP GET request. It requires the song group and title as parameters.
-func (api *MusicInfoAPI) FetchSongInfo(ctx context.Context, group, song string) (*entity.SongDetail, error) {
+func (api *MusicInfoAPI) FetchSongInfo(ctx context.Context, song entity.Song) (*entity.SongDetail, error) {
 	const op = "adapter.api.MusicInfoAPI.FetchSongInfo"
 
 	path, err := url.JoinPath(api.baseURL, "/info")
@@ -63,8 +63,8 @@ func (api *MusicInfoAPI) FetchSongInfo(ctx context.Context, group, song string) 
 	}
 
 	query := url.Query()
-	query.Set("group", group)
-	query.Set("song", song)
+	query.Set("group", song.GroupName)
+	query.Set("song", song.Name)
 	url.RawQuery = query.Encode()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url.String(), nil)

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/vadimbarashkov/online-song-library/internal/entity"
 )
 
 var fixedTime = time.Now()
@@ -19,7 +20,10 @@ func TestMusicInfoAPI_FetchSongInfo(t *testing.T) {
 	t.Run("invalid base url", func(t *testing.T) {
 		api := NewMusicInfoAPI("https://[::1]:namedport", nil)
 
-		songDetail, err := api.FetchSongInfo(context.Background(), "Test Group", "Test Song")
+		songDetail, err := api.FetchSongInfo(context.Background(), entity.Song{
+			GroupName: "Test Group",
+			Name:      "Test Song",
+		})
 
 		assert.Error(t, err)
 		assert.ErrorContains(t, err, "failed to form path")
@@ -37,7 +41,10 @@ func TestMusicInfoAPI_FetchSongInfo(t *testing.T) {
 
 		api := NewMusicInfoAPI("https://example.com", client)
 
-		songDetail, err := api.FetchSongInfo(context.Background(), "Test Group", "Test Song")
+		songDetail, err := api.FetchSongInfo(context.Background(), entity.Song{
+			GroupName: "Test Group",
+			Name:      "Test Song",
+		})
 
 		assert.Error(t, err)
 		assert.ErrorContains(t, err, "failed to fetch song info")
@@ -52,7 +59,10 @@ func TestMusicInfoAPI_FetchSongInfo(t *testing.T) {
 
 		api := NewMusicInfoAPI(server.URL, nil)
 
-		songDetail, err := api.FetchSongInfo(context.Background(), "Test Group", "Test Song")
+		songDetail, err := api.FetchSongInfo(context.Background(), entity.Song{
+			GroupName: "Test Group",
+			Name:      "Test Song",
+		})
 
 		assert.Error(t, err)
 		assert.ErrorContains(t, err, "unexpected status code: 500")
@@ -68,7 +78,10 @@ func TestMusicInfoAPI_FetchSongInfo(t *testing.T) {
 
 		api := NewMusicInfoAPI(server.URL, nil)
 
-		songDetail, err := api.FetchSongInfo(context.Background(), "Test Group", "Test Song")
+		songDetail, err := api.FetchSongInfo(context.Background(), entity.Song{
+			GroupName: "Test Group",
+			Name:      "Test Song",
+		})
 
 		assert.Error(t, err)
 		assert.ErrorContains(t, err, "failed to decode response body")
@@ -99,7 +112,10 @@ func TestMusicInfoAPI_FetchSongInfo(t *testing.T) {
 
 		api := NewMusicInfoAPI(server.URL, nil)
 
-		songDetail, err := api.FetchSongInfo(context.Background(), "Test Group", "Test Song")
+		songDetail, err := api.FetchSongInfo(context.Background(), entity.Song{
+			GroupName: "Test Group",
+			Name:      "Test Song",
+		})
 
 		assert.NoError(t, err)
 		assert.NotNil(t, songDetail)

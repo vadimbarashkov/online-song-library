@@ -22,9 +22,9 @@ func (_m *MockMusicInfoAPI) EXPECT() *MockMusicInfoAPI_Expecter {
 	return &MockMusicInfoAPI_Expecter{mock: &_m.Mock}
 }
 
-// FetchSongInfo provides a mock function with given fields: ctx, group, song
-func (_m *MockMusicInfoAPI) FetchSongInfo(ctx context.Context, group string, song string) (*entity.SongDetail, error) {
-	ret := _m.Called(ctx, group, song)
+// FetchSongInfo provides a mock function with given fields: ctx, song
+func (_m *MockMusicInfoAPI) FetchSongInfo(ctx context.Context, song entity.Song) (*entity.SongDetail, error) {
+	ret := _m.Called(ctx, song)
 
 	if len(ret) == 0 {
 		panic("no return value specified for FetchSongInfo")
@@ -32,19 +32,19 @@ func (_m *MockMusicInfoAPI) FetchSongInfo(ctx context.Context, group string, son
 
 	var r0 *entity.SongDetail
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) (*entity.SongDetail, error)); ok {
-		return rf(ctx, group, song)
+	if rf, ok := ret.Get(0).(func(context.Context, entity.Song) (*entity.SongDetail, error)); ok {
+		return rf(ctx, song)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) *entity.SongDetail); ok {
-		r0 = rf(ctx, group, song)
+	if rf, ok := ret.Get(0).(func(context.Context, entity.Song) *entity.SongDetail); ok {
+		r0 = rf(ctx, song)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*entity.SongDetail)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, group, song)
+	if rf, ok := ret.Get(1).(func(context.Context, entity.Song) error); ok {
+		r1 = rf(ctx, song)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -59,15 +59,14 @@ type MockMusicInfoAPI_FetchSongInfo_Call struct {
 
 // FetchSongInfo is a helper method to define mock.On call
 //   - ctx context.Context
-//   - group string
-//   - song string
-func (_e *MockMusicInfoAPI_Expecter) FetchSongInfo(ctx interface{}, group interface{}, song interface{}) *MockMusicInfoAPI_FetchSongInfo_Call {
-	return &MockMusicInfoAPI_FetchSongInfo_Call{Call: _e.mock.On("FetchSongInfo", ctx, group, song)}
+//   - song entity.Song
+func (_e *MockMusicInfoAPI_Expecter) FetchSongInfo(ctx interface{}, song interface{}) *MockMusicInfoAPI_FetchSongInfo_Call {
+	return &MockMusicInfoAPI_FetchSongInfo_Call{Call: _e.mock.On("FetchSongInfo", ctx, song)}
 }
 
-func (_c *MockMusicInfoAPI_FetchSongInfo_Call) Run(run func(ctx context.Context, group string, song string)) *MockMusicInfoAPI_FetchSongInfo_Call {
+func (_c *MockMusicInfoAPI_FetchSongInfo_Call) Run(run func(ctx context.Context, song entity.Song)) *MockMusicInfoAPI_FetchSongInfo_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string))
+		run(args[0].(context.Context), args[1].(entity.Song))
 	})
 	return _c
 }
@@ -77,7 +76,7 @@ func (_c *MockMusicInfoAPI_FetchSongInfo_Call) Return(_a0 *entity.SongDetail, _a
 	return _c
 }
 
-func (_c *MockMusicInfoAPI_FetchSongInfo_Call) RunAndReturn(run func(context.Context, string, string) (*entity.SongDetail, error)) *MockMusicInfoAPI_FetchSongInfo_Call {
+func (_c *MockMusicInfoAPI_FetchSongInfo_Call) RunAndReturn(run func(context.Context, entity.Song) (*entity.SongDetail, error)) *MockMusicInfoAPI_FetchSongInfo_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -10,8 +10,14 @@ import (
 	"github.com/vadimbarashkov/online-song-library/internal/config"
 )
 
+var configPath = ".env"
+
 func main() {
-	cfg, err := config.Load(".env")
+	if val, ok := os.LookupEnv("CONFIG_PATH"); ok {
+		configPath = val
+	}
+
+	cfg, err := config.Load(configPath)
 	if err != nil {
 		fmt.Fprint(os.Stderr, err)
 		os.Exit(1)
