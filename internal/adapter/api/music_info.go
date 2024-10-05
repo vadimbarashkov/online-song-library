@@ -14,7 +14,6 @@ import (
 )
 
 // songDetailSchema defines the structure of the song details returned by the external API.
-// TODO: add validation
 type songDetailSchema struct {
 	ReleaseDate string `json:"releaseDate" validate:"required,releaseDate"`
 	Text        string `json:"text" validate:"required"`
@@ -28,8 +27,8 @@ type MusicInfoAPI struct {
 	validate *validator.Validate
 }
 
-// NewMusicInfoAPI creates a new instance of MusicInfoAPI with the provided
-// base URL and HTTP client. If no client is provided, the default client is used.
+// NewMusicInfoAPI creates a new instance of MusicInfoAPI with the provided base URL and HTTP client.
+// If no client is provided, the default HTTP client is used. It also registers custom validations.
 func NewMusicInfoAPI(baseURL string, client *http.Client) *MusicInfoAPI {
 	if client == nil {
 		client = http.DefaultClient
@@ -45,8 +44,8 @@ func NewMusicInfoAPI(baseURL string, client *http.Client) *MusicInfoAPI {
 	}
 }
 
-// songDetailSchemaToEntity maps the external API song detail schema to the
-// internal entity.SongDetail structure used within the application.
+// songDetailSchemaToEntity maps the external API song detail schema to the internal entity.SongDetail structure.
+// It parses the release date from string format and returns a SongDetail entity.
 func (api *MusicInfoAPI) songDetailSchemaToEntity(songDetail songDetailSchema) *entity.SongDetail {
 	releaseDate, _ := time.Parse("02.01.2006", songDetail.ReleaseDate)
 
@@ -57,8 +56,8 @@ func (api *MusicInfoAPI) songDetailSchemaToEntity(songDetail songDetailSchema) *
 	}
 }
 
-// FetchSongInfo retrieves song details from the external API by
-// performing an HTTP GET request. It requires the song group and title as parameters.
+// FetchSongInfo retrieves song details from the external API by performing an HTTP GET request.
+// The song's group name and title are passed as query parameters. It returns a SongDetail entity or an error.
 func (api *MusicInfoAPI) FetchSongInfo(ctx context.Context, song entity.Song) (*entity.SongDetail, error) {
 	const op = "adapter.api.MusicInfoAPI.FetchSongInfo"
 

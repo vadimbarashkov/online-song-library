@@ -21,11 +21,13 @@ func handlePing(w http.ResponseWriter, _ *http.Request) {
 	fmt.Fprint(w, "pong")
 }
 
+// songHandler struct handles HTTP requests related to songs.
 type songHandler struct {
 	songUseCase songUseCase
 	validate    *validator.Validate
 }
 
+// newSongHandler initializes a new songHandler instance.
 func newSongHandler(songUseCase songUseCase, validate *validator.Validate) *songHandler {
 	return &songHandler{
 		songUseCase: songUseCase,
@@ -33,6 +35,7 @@ func newSongHandler(songUseCase songUseCase, validate *validator.Validate) *song
 	}
 }
 
+// addSongRequestToEntity converts an addSongRequest to an entity.Song.
 func (h *songHandler) addSongRequestToEntity(req addSongRequest) entity.Song {
 	return entity.Song{
 		GroupName: req.Group,
@@ -40,6 +43,7 @@ func (h *songHandler) addSongRequestToEntity(req addSongRequest) entity.Song {
 	}
 }
 
+// updateSongRequestToEntity converts an updateSongRequest to an entity.Song.
 func (h *songHandler) updateSongRequestToEntity(req updateSongRequest) entity.Song {
 	releaseDate, _ := time.Parse("02.01.2006", req.ReleaseDate)
 
@@ -54,6 +58,7 @@ func (h *songHandler) updateSongRequestToEntity(req updateSongRequest) entity.So
 	}
 }
 
+// entityToSongSchema converts an entity.Song to songSchema for response.
 func (h *songHandler) entityToSongSchema(song *entity.Song) songSchema {
 	return songSchema{
 		ID:        song.ID,
@@ -69,6 +74,7 @@ func (h *songHandler) entityToSongSchema(song *entity.Song) songSchema {
 	}
 }
 
+// entityToSongWithVersesSchema converts an entity.SongWithVerses to songWithVersesSchema for response.
 func (h *songHandler) entityToSongWithVersesSchema(song *entity.SongWithVerses) songWithVersesSchema {
 	return songWithVersesSchema{
 		ID:        song.ID,
@@ -80,6 +86,7 @@ func (h *songHandler) entityToSongWithVersesSchema(song *entity.SongWithVerses) 
 	}
 }
 
+// entityToPaginationSchema converts entity.Pagination to paginationSchema for response.
 func (h *songHandler) entityToPaginationSchema(pagination *entity.Pagination) paginationSchema {
 	return paginationSchema{
 		Offset: pagination.Offset,

@@ -15,6 +15,8 @@ import (
 	"github.com/vadimbarashkov/online-song-library/pkg/validate"
 )
 
+// songUseCase defines the interface for the song use case layer.
+// It includes methods for adding, fetching, modifying, and removing songs.
 type songUseCase interface {
 	AddSong(ctx context.Context, song entity.Song) (*entity.Song, error)
 	FetchSongs(
@@ -31,6 +33,8 @@ type songUseCase interface {
 	RemoveSong(ctx context.Context, songID uuid.UUID) (int64, error)
 }
 
+// NewRouter initializes a new HTTP router for the application.
+// It sets up middleware for logging, CORS, and error handling, as well as route definitions.
 func NewRouter(logger *httplog.Logger, songUseCase songUseCase) *chi.Mux {
 	r := chi.NewRouter()
 
@@ -67,6 +71,8 @@ func NewRouter(logger *httplog.Logger, songUseCase songUseCase) *chi.Mux {
 	return r
 }
 
+// newValidate initializes a new validator for request validation.
+// It registers custom validation rules and sets a tag name function for JSON field mapping.
 func newValidate() *validator.Validate {
 	v := validator.New()
 

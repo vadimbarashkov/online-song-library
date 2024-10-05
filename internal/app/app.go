@@ -19,6 +19,19 @@ import (
 	repo "github.com/vadimbarashkov/online-song-library/internal/adapter/repository/postgres"
 )
 
+// Run initializes and starts the application server.
+// It accepts a context for cancellation and a configuration object containing
+// application settings. The function performs the following tasks:
+//
+// 1. Connects to the PostgreSQL database using the provided Data Source Name (DSN).
+// 2. Runs database migrations based on the provided migration path.
+// 3. Initializes the song repository and the music information API client.
+// 4. Sets up the song use case logic that interacts with the repository and API.
+// 5. Configures the HTTP server with routing and timeout settings.
+// 6. Starts the server in a separate goroutine, handling both TLS and non-TLS modes
+//    depending on the environment configuration.
+// 7. Waits for the context to be done (indicating shutdown) and gracefully shuts down
+//    the server, ensuring all active connections are completed before exiting.
 func Run(ctx context.Context, cfg *config.Config) error {
 	const op = "app.Run"
 
@@ -83,6 +96,7 @@ func Run(ctx context.Context, cfg *config.Config) error {
 	return g.Wait()
 }
 
+// setupLogger configures the HTTP logger based on the application environment.
 func setupLogger(env string) *httplog.Logger {
 	opt := httplog.Options{
 		LogLevel:        slog.LevelDebug,

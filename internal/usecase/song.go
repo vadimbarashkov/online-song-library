@@ -37,7 +37,7 @@ func NewSongUseCase(musicInfoAPI musicInfoAPI, songRepo songRepository) *SongUse
 	}
 }
 
-// CreateSong creates a new song by fetching its details from the music info API and saving it to the repository.
+// AddSong creates a new song by fetching its details from the music info API and saving it to the repository.
 // It returns the saved song or an error if the process fails.
 func (uc *SongUseCase) AddSong(ctx context.Context, song entity.Song) (*entity.Song, error) {
 	const op = "usecase.AddSong"
@@ -74,8 +74,8 @@ func (uc *SongUseCase) FetchSongs(
 	return songs, pgn, nil
 }
 
-// FetchSongText retrieves the text of a specific song by its ID, applying pagination if specified.
-// It returns the song text or an error if the retrieval fails.
+// FetchSongWithVerses retrieves the text of a specific song by its ID, breaking it into verses and applying pagination if specified.
+// It returns the song with verses or an error if the retrieval fails.
 func (uc *SongUseCase) FetchSongWithVerses(
 	ctx context.Context,
 	songID uuid.UUID,

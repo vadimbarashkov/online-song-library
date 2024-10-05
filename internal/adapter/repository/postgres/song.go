@@ -64,9 +64,8 @@ func (r *SongRepository) entityToRow(song entity.Song) songRow {
 	}
 }
 
-// entityToMap converts an entity.Song object to a map of field names and values,
-// which is used to dynamically generate SQL UPDATE clauses. Fields that are empty or zero-valued
-// are omitted from the resulting map, ensuring that only non-empty fields are updated.
+// entityToMap converts an entity.Song object to a map of field names and values.
+// This map is used to dynamically generate SQL UPDATE clauses, omitting empty or zero-valued fields.
 func (r *SongRepository) entityToMap(song entity.Song) map[string]any {
 	clauses := make(map[string]any)
 
@@ -106,9 +105,8 @@ func (r *SongRepository) rowToEntity(row songRow) *entity.Song {
 	}
 }
 
-// rowsToEntities converts a slice of songRow objects to a slice of entity.Song pointers.
-// This function is useful when retrieving multiple rows from the database and transforming them
-// into a format suitable for application-level use.
+// rowsToEntities converts a slice of songRow objects to a slice of pointers to entity.Song objects.
+// This function is useful for retrieving multiple rows from the database and transforming them into application-level entities.
 func (r *SongRepository) rowsToEntities(rows []songRow) []*entity.Song {
 	songs := make([]*entity.Song, 0, len(rows))
 
@@ -119,8 +117,9 @@ func (r *SongRepository) rowsToEntities(rows []songRow) []*entity.Song {
 	return songs
 }
 
-// setFilterConditions adds SQL WHERE conditions to the query builder (squirrel.SelectBuilder) based on the
-// provided SongFilter. It allows filtering the results by group name, song title, release year/date, and text content.
+// applySongFilters adds SQL WHERE conditions to the query builder (squirrel.SelectBuilder)
+// based on the provided SongFilter. It allows filtering results by group name, song title,
+// release year/date, and text content.
 func (r *SongRepository) applySongFilters(sb sq.SelectBuilder, filters ...entity.SongFilter) sq.SelectBuilder {
 	for _, filter := range filters {
 		field := filter.Field
@@ -161,8 +160,8 @@ func (r *SongRepository) applySongFilters(sb sq.SelectBuilder, filters ...entity
 	return sb
 }
 
-// Save inserts a new song record into the 'songs' table. If any required fields are missing, it returns an error.
-// It returns the saved song entity if successful or an error if the operation fails.
+// Save inserts a new song record into the 'songs' table.
+// It returns the saved song entity if successful or an error if any required fields are missing or if the operation fails.
 func (r *SongRepository) Save(ctx context.Context, song entity.Song) (*entity.Song, error) {
 	const op = "adapter.repository.postgres.SongRepository.Save"
 
@@ -191,8 +190,7 @@ func (r *SongRepository) Save(ctx context.Context, song entity.Song) (*entity.So
 }
 
 // GetAll retrieves all song records that match the provided filter conditions and pagination settings.
-// It uses the SongFilter struct for filtering the results and Pagination for controlling the result set size.
-// The function returns a slice of song entities or an error if the operation fails.
+// It returns a slice of song entities along with updated pagination information, or an error if the operation fails.
 func (r *SongRepository) GetAll(
 	ctx context.Context,
 	pagination entity.Pagination,
@@ -270,9 +268,8 @@ func (r *SongRepository) GetByID(ctx context.Context, songID uuid.UUID) (*entity
 	return r.rowToEntity(row), nil
 }
 
-// Update modifies an existing song record in the database, identified by its ID.
-// It uses the entityToMap function to dynamically generate the SET clauses in the SQL update query.
-// The method returns the updated song entity or an error if the song is not found or the update fails.
+// Update modifies an existing song record in the 'songs' table based on its ID.
+// It returns the updated song entity or an error if the update operation fails or if the song does not exist.
 func (r *SongRepository) Update(ctx context.Context, songID uuid.UUID, song entity.Song) (*entity.Song, error) {
 	const op = "adapter.repository.postgres.SongRepository.Update"
 
@@ -306,9 +303,8 @@ func (r *SongRepository) Update(ctx context.Context, songID uuid.UUID, song enti
 	return r.rowToEntity(updatedRow), nil
 }
 
-// Delete removes a song record from the 'songs' table, identified by its ID.
-// The method returns the number of rows affected by the delete operation.
-// If no rows were deleted, it returns an ErrSongNotFound error.
+// Delete removes a song record from the 'songs' table based on its ID.
+// It returns an error if the delete operation fails or if the song does not exist.
 func (r *SongRepository) Delete(ctx context.Context, songID uuid.UUID) (int64, error) {
 	const op = "adapter.repository.postgres.SongRepository.Delete"
 

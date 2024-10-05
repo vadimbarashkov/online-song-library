@@ -11,6 +11,8 @@ import (
 	"github.com/vadimbarashkov/online-song-library/internal/entity"
 )
 
+// songSchema represents the structure of a song entity for API responses.
+// It includes metadata about the song along with detailed information.
 type songSchema struct {
 	ID         uuid.UUID        `json:"id"`
 	GroupName  string           `json:"groupName"`
@@ -20,12 +22,15 @@ type songSchema struct {
 	UpdatedAt  time.Time        `json:"updated_at"`
 }
 
+// songDetailSchema represents detailed information about a song.
+// It includes the release date, text, and a link to the song.
 type songDetailSchema struct {
 	ReleaseDate string `json:"releaseDate"`
 	Text        string `json:"text"`
 	Link        string `json:"link"`
 }
 
+// songWithVersesSchema is a structure used for responses containing a song and its verses.
 type songWithVersesSchema struct {
 	ID        uuid.UUID `json:"id"`
 	GroupName string    `json:"groupName"`
@@ -35,6 +40,7 @@ type songWithVersesSchema struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// paginationSchema represents pagination metadata for API responses.
 type paginationSchema struct {
 	Offset uint64 `json:"offset"`
 	Limit  uint64 `json:"limit"`
@@ -42,11 +48,13 @@ type paginationSchema struct {
 	Total  uint64 `json:"total"`
 }
 
+// addSongRequest defines the expected structure for requests to add a new song.
 type addSongRequest struct {
 	Group string `json:"group" validate:"required"`
 	Song  string `json:"song" validate:"required"`
 }
 
+// updateSongRequest defines the expected structure for requests to update an existing song.
 type updateSongRequest struct {
 	GroupName   string `json:"groupName"`
 	Name        string `json:"name"`
@@ -55,16 +63,19 @@ type updateSongRequest struct {
 	Link        string `json:"link" validate:"url,omitempty"`
 }
 
+// songsResponse represents the structure of the response for fetching multiple songs.
 type songsResponse struct {
 	Songs      []songSchema     `json:"songs"`
 	Pagination paginationSchema `json:"pagination"`
 }
 
+// songWithVersesResponse represents the structure of the response for fetching a song with its verses.
 type songWithVersesResponse struct {
 	Song       songWithVersesSchema `json:"song"`
 	Pagination paginationSchema     `json:"pagination"`
 }
 
+// parsePagination extracts pagination parameters from the HTTP request query.
 func parsePagination(r *http.Request) entity.Pagination {
 	getUintQueryParam := func(key string, defaultValue uint64) uint64 {
 		param := r.URL.Query().Get(key)
@@ -86,6 +97,7 @@ func parsePagination(r *http.Request) entity.Pagination {
 	return pagination
 }
 
+// parseSongFilters extracts song filter criteria from the HTTP request query.
 func parseSongFilters(r *http.Request) []entity.SongFilter {
 	var filters []entity.SongFilter
 
@@ -125,12 +137,14 @@ func parseSongFilters(r *http.Request) []entity.SongFilter {
 
 const statusError = "error"
 
+// errorResponse represents the structure of error responses from the API.
 type errorResponse struct {
 	Status  string   `json:"status"`
 	Message string   `json:"message"`
 	Details []string `json:"details,omitempty"`
 }
 
+// Predefined error responses for common scenarios
 var (
 	emptyRequestBodyResp = errorResponse{
 		Status:  statusError,
@@ -158,6 +172,7 @@ var (
 	}
 )
 
+// messageForValidateTag returns a user-friendly message for validation errors based on the tag.
 func messageForValidateTag(tag string) string {
 	switch tag {
 	case "required":
@@ -171,6 +186,7 @@ func messageForValidateTag(tag string) string {
 	}
 }
 
+// getValidationErrorDetails extracts detailed error messages from validation errors.
 func getValidationErrorDetails(err error) []string {
 	var details []string
 
@@ -186,6 +202,7 @@ func getValidationErrorDetails(err error) []string {
 	return details
 }
 
+// validationError creates an errorResponse for validation errors.
 func validationError(err error) errorResponse {
 	return errorResponse{
 		Status:  statusError,
