@@ -42,6 +42,19 @@ func setupServer(t testing.TB) (*httpexpect.Expect, *httpMock.MockSongUseCase) {
 	}), songUseCaseMock
 }
 
+func TestPing(t *testing.T) {
+	const path = "/api/v1/ping"
+
+	t.Run("success", func(t *testing.T) {
+		e, _ := setupServer(t)
+
+		e.GET(path).
+			Expect().
+			Status(http.StatusOK).
+			Body().IsEqual("pong")
+	})
+}
+
 func TestSongHandler_AddSong(t *testing.T) {
 	const path = "/api/v1/songs"
 
