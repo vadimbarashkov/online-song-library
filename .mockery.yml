@@ -12,3 +12,10 @@ packages:
           dir: "mocks/{{ .PackageName }}"
           filename: "song_repository_mock.go"
           mockname: "Mock{{ .InterfaceName | camelcase }}"
+  github.com/vadimbarashkov/online-song-library/internal/adapter/delivery/http:
+    interfaces:
+      songUseCase:
+        config:
+          dir: "mocks/{{ .PackageName }}"
+          filename: "song_use_case_mock.go"
+          mockname: "Mock{{ .InterfaceName | camelcase }}"

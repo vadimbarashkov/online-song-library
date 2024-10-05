@@ -14,8 +14,6 @@ import (
 	"github.com/vadimbarashkov/online-song-library/internal/entity"
 )
 
-var fixedTime = time.Now()
-
 func TestMusicInfoAPI_FetchSongInfo(t *testing.T) {
 	t.Run("invalid base url", func(t *testing.T) {
 		api := NewMusicInfoAPI("https://[::1]:namedport", nil)
@@ -41,7 +39,10 @@ func TestMusicInfoAPI_FetchSongInfo(t *testing.T) {
 
 		api := NewMusicInfoAPI("https://example.com", client)
 
-		songDetail, err := api.FetchSongInfo(context.Background(), entity.Song{
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+
+		songDetail, err := api.FetchSongInfo(ctx, entity.Song{
 			GroupName: "Test Group",
 			Name:      "Test Song",
 		})
@@ -95,7 +96,7 @@ func TestMusicInfoAPI_FetchSongInfo(t *testing.T) {
 			assert.Equal(t, "Test Song", r.URL.Query().Get("song"))
 
 			resp := songDetailSchema{
-				ReleaseDate: fixedTime,
+				ReleaseDate: "16.07.2006",
 				Text:        "Test Text",
 				Link:        "https://example.com",
 			}
@@ -119,7 +120,7 @@ func TestMusicInfoAPI_FetchSongInfo(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotNil(t, songDetail)
-		assert.True(t, fixedTime.Equal(songDetail.ReleaseDate))
+		assert.True(t, time.Date(2006, 7, 16, 0, 0, 0, 0, time.UTC).Equal(songDetail.ReleaseDate))
 		assert.Equal(t, "Test Text", songDetail.Text)
 		assert.Equal(t, "https://example.com", songDetail.Link)
 	})

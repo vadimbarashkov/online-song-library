@@ -226,8 +226,14 @@ func TestSongRepository_GetAll(t *testing.T) {
 		songs, pagination, err := repo.GetAll(
 			context.Background(),
 			entity.Pagination{},
-			entity.SongFilterByName("Song"),
-			entity.SongFilterByReleaseYear(fixedTime.Year()),
+			entity.SongFilter{
+				Field: entity.SongNameFilterField,
+				Value: "Song",
+			},
+			entity.SongFilter{
+				Field: entity.SongReleaseYearFilterField,
+				Value: fixedTime.Year(),
+			},
 		)
 
 		assert.NoError(t, err)
