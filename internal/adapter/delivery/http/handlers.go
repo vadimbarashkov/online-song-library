@@ -90,14 +90,21 @@ func (h *songHandler) entityToPaginationSchema(pagination *entity.Pagination) pa
 }
 
 func (h *songHandler) addSong(w http.ResponseWriter, r *http.Request) {
+	logger := httplog.LogEntry(r.Context())
+	logger.Debug("handling add song request")
+
 	var req addSongRequest
 
 	if err := render.DecodeJSON(r.Body, &req); err != nil {
 		if errors.Is(err, io.EOF) {
+			logger.Debug("empty request body")
+
 			render.Status(r, http.StatusBadRequest)
 			render.JSON(w, r, emptyRequestBodyResp)
 			return
 		}
+
+		logger.Debug("invalid request body", slog.Any("err", err))
 
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, invalidRequestBodyResp)
@@ -105,6 +112,8 @@ func (h *songHandler) addSong(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.validate.Struct(req); err != nil {
+		logger.Debug("validation error", slog.Any("err", err))
+
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, validationError(err))
 		return
@@ -119,13 +128,24 @@ func (h *songHandler) addSong(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logger.Debug("Song added successfully", slog.Any("songID", song.ID))
+
 	render.Status(r, http.StatusCreated)
 	render.JSON(w, r, h.entityToSongSchema(song))
 }
 
 func (h *songHandler) fetchSongs(w http.ResponseWriter, r *http.Request) {
+	logger := httplog.LogEntry(r.Context())
+	logger.Info("handling fetch songs request")
+
 	pagination := parsePagination(r)
 	filters := parseSongFilters(r)
+
+	logger.Debug(
+		"fetching songs",
+		slog.Any("pagination", pagination),
+		slog.Any("filters", filters),
+	)
 
 	songs, pgn, err := h.songUseCase.FetchSongs(r.Context(), pagination, filters...)
 	if err != nil {
@@ -135,6 +155,8 @@ func (h *songHandler) fetchSongs(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, r, serverErrResp)
 		return
 	}
+
+	logger.Debug("Songs fetched successfully", slog.Any("items", pgn.Items))
 
 	resp := songsResponse{Pagination: h.entityToPaginationSchema(pgn)}
 	for _, song := range songs {
@@ -146,31 +168,45 @@ func (h *songHandler) fetchSongs(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *songHandler) fetchSongWithVerses(w http.ResponseWriter, r *http.Request) {
+	logger := httplog.LogEntry(r.Context())
+	logger.Info("handling fetch song with verses request")
+
 	songIDParam := chi.URLParam(r, "songID")
 
 	songID, err := uuid.Parse(songIDParam)
 	if err != nil {
+		logger.Debug("invalid song ID", slog.Any("err", err))
+
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, invalidSongIDParamResp)
 		return
 	}
+
+	logger.Debug("fetching song with verses", slog.Any("songID", songID))
 
 	pagination := parsePagination(r)
 
 	song, pgn, err := h.songUseCase.FetchSongWithVerses(r.Context(), songID, pagination)
 	if err != nil {
 		if errors.Is(err, entity.ErrSongNotFound) {
+			logger.Debug("song not found", slog.Any("songID", songID))
+
 			render.Status(r, http.StatusNotFound)
 			render.JSON(w, r, songNotFoundErrResp)
 			return
 		}
 
-		httplog.LogEntrySetField(r.Context(), "err", slog.AnyValue(err))
+		httplog.LogEntrySetFields(r.Context(), map[string]any{
+			"songID": songID,
+			"err":    err,
+		})
 
 		render.Status(r, http.StatusInternalServerError)
 		render.JSON(w, r, serverErrResp)
 		return
 	}
+
+	logger.Debug("song with verses fetched successfully", slog.Any("songID", song.ID))
 
 	resp := songWithVersesResponse{
 		Song:       h.entityToSongWithVersesSchema(song),
@@ -182,10 +218,15 @@ func (h *songHandler) fetchSongWithVerses(w http.ResponseWriter, r *http.Request
 }
 
 func (h *songHandler) modifySong(w http.ResponseWriter, r *http.Request) {
+	logger := httplog.LogEntry(r.Context())
+	logger.Debug("handling modify song request")
+
 	songIDParam := chi.URLParam(r, "songID")
 
 	songID, err := uuid.Parse(songIDParam)
 	if err != nil {
+		logger.Debug("invalid song ID", slog.Any("err", err))
+
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, invalidSongIDParamResp)
 		return
@@ -195,10 +236,14 @@ func (h *songHandler) modifySong(w http.ResponseWriter, r *http.Request) {
 
 	if err := render.DecodeJSON(r.Body, &req); err != nil {
 		if errors.Is(err, io.EOF) {
+			logger.Debug("empty request body")
+
 			render.Status(r, http.StatusBadRequest)
 			render.JSON(w, r, emptyRequestBodyResp)
 			return
 		}
+
+		logger.Debug("invalid request body", slog.Any("err", err))
 
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, invalidRequestBodyResp)
@@ -206,49 +251,72 @@ func (h *songHandler) modifySong(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.validate.Struct(req); err != nil {
+		logger.Debug("validation error", slog.Any("err", err))
+
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, validationError(err))
 		return
 	}
 
+	logger.Debug("song modification", slog.Any("songID", songID))
+
 	song, err := h.songUseCase.ModifySong(r.Context(), songID, h.updateSongRequestToEntity(req))
 	if err != nil {
 		if errors.Is(err, entity.ErrSongNotFound) {
+			httplog.LogEntrySetField(r.Context(), "songID", slog.AnyValue(songID))
+
 			render.Status(r, http.StatusNotFound)
 			render.JSON(w, r, songNotFoundErrResp)
 			return
 		}
 
-		httplog.LogEntrySetField(r.Context(), "err", slog.AnyValue(err))
+		httplog.LogEntrySetFields(r.Context(), map[string]any{
+			"songID": songID,
+			"err":    err,
+		})
 
 		render.Status(r, http.StatusInternalServerError)
 		render.JSON(w, r, serverErrResp)
 		return
 	}
 
+	logger.Debug("song modified successfully", slog.Any("songID", songID))
+
 	render.Status(r, http.StatusOK)
 	render.JSON(w, r, h.entityToSongSchema(song))
 }
 
 func (h *songHandler) removeSong(w http.ResponseWriter, r *http.Request) {
+	logger := httplog.LogEntry(r.Context())
+	logger.Info("handling remove song request")
+
 	songIDParam := chi.URLParam(r, "songID")
 
 	songID, err := uuid.Parse(songIDParam)
 	if err != nil {
+		logger.Debug("invalid song ID", slog.Any("err", err))
+
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, invalidSongIDParamResp)
 		return
 	}
 
+	logger.Debug("removing song", slog.Any("songID", songID))
+
 	removed, err := h.songUseCase.RemoveSong(r.Context(), songID)
 	if err != nil {
 		if errors.Is(err, entity.ErrSongNotFound) {
+			httplog.LogEntrySetField(r.Context(), "songID", slog.AnyValue(songID))
+
 			render.Status(r, http.StatusNotFound)
 			render.JSON(w, r, songNotFoundErrResp)
 			return
 		}
 
-		httplog.LogEntrySetField(r.Context(), "err", slog.AnyValue(err))
+		httplog.LogEntrySetFields(r.Context(), map[string]any{
+			"songID": songID,
+			"err":    err,
+		})
 
 		render.Status(r, http.StatusInternalServerError)
 		render.JSON(w, r, serverErrResp)
@@ -256,10 +324,7 @@ func (h *songHandler) removeSong(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if removed > 1 {
-		logger := httplog.LogEntry(r.Context())
-		if logger != nil {
-			logger.Error("removed more than one object", slog.Int64("removed", removed))
-		}
+		logger.Error("removed more than one object", slog.Int64("removed", removed))
 	}
 
 	w.WriteHeader(http.StatusNoContent)

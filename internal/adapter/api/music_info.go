@@ -8,7 +8,9 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/vadimbarashkov/online-song-library/internal/entity"
+	"github.com/vadimbarashkov/online-song-library/pkg/validate"
 )
 
 // songDetailSchema defines the structure of the song details returned by the external API.
@@ -21,8 +23,9 @@ type songDetailSchema struct {
 
 // MusicInfoAPI is an API client used to fetch song information from an external music service.
 type MusicInfoAPI struct {
-	baseURL string
-	client  *http.Client
+	baseURL  string
+	client   *http.Client
+	validate *validator.Validate
 }
 
 // NewMusicInfoAPI creates a new instance of MusicInfoAPI with the provided
@@ -32,27 +35,26 @@ func NewMusicInfoAPI(baseURL string, client *http.Client) *MusicInfoAPI {
 		client = http.DefaultClient
 	}
 
+	v := validator.New()
+	_ = v.RegisterValidation("releaseDate", validate.ReleaseDateValidation)
+
 	return &MusicInfoAPI{
-		baseURL: baseURL,
-		client:  client,
+		baseURL:  baseURL,
+		client:   client,
+		validate: v,
 	}
 }
 
 // songDetailSchemaToEntity maps the external API song detail schema to the
 // internal entity.SongDetail structure used within the application.
-func (api *MusicInfoAPI) songDetailSchemaToEntity(songDetail songDetailSchema) (*entity.SongDetail, error) {
-	const op = "adapter.api.MusicInfoAPI.songDetailSchemaToEntity"
-
-	releaseDate, err := time.Parse("02.01.2006", songDetail.ReleaseDate)
-	if err != nil {
-		return nil, fmt.Errorf("%s: failed to parse time: %w", op, err)
-	}
+func (api *MusicInfoAPI) songDetailSchemaToEntity(songDetail songDetailSchema) *entity.SongDetail {
+	releaseDate, _ := time.Parse("02.01.2006", songDetail.ReleaseDate)
 
 	return &entity.SongDetail{
 		ReleaseDate: releaseDate,
 		Text:        songDetail.Text,
 		Link:        songDetail.Link,
-	}, nil
+	}
 }
 
 // FetchSongInfo retrieves song details from the external API by
@@ -96,10 +98,9 @@ func (api *MusicInfoAPI) FetchSongInfo(ctx context.Context, song entity.Song) (*
 		return nil, fmt.Errorf("%s: failed to decode response body: %w", op, err)
 	}
 
-	res, err := api.songDetailSchemaToEntity(songDetail)
-	if err != nil {
-		return nil, fmt.Errorf("%s: failed to convert schema: %w", op, err)
+	if err := api.validate.Struct(songDetail); err != nil {
+		return nil, fmt.Errorf("%s: validation error: %w", op, err)
 	}
 
-	return res, nil
+	return api.songDetailSchemaToEntity(songDetail), nil
 }

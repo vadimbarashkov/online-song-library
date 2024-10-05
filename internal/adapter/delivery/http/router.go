@@ -4,7 +4,6 @@ import (
 	"context"
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
@@ -13,6 +12,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/vadimbarashkov/online-song-library/internal/entity"
+	"github.com/vadimbarashkov/online-song-library/pkg/validate"
 )
 
 type songUseCase interface {
@@ -68,11 +68,11 @@ func NewRouter(logger *httplog.Logger, songUseCase songUseCase) *chi.Mux {
 }
 
 func newValidate() *validator.Validate {
-	validate := validator.New()
+	v := validator.New()
 
-	validate.RegisterValidation("releaseDate", releaseDateValidation)
+	_ = v.RegisterValidation("releaseDate", validate.ReleaseDateValidation)
 
-	validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
+	v.RegisterTagNameFunc(func(fld reflect.StructField) string {
 		name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
 		if name == "-" {
 			return ""
@@ -80,11 +80,5 @@ func newValidate() *validator.Validate {
 		return name
 	})
 
-	return validate
-}
-
-func releaseDateValidation(fl validator.FieldLevel) bool {
-	date := fl.Field().String()
-	_, err := time.Parse("02.01.2006", date)
-	return err == nil
+	return v
 }

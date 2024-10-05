@@ -89,6 +89,40 @@ func TestMusicInfoAPI_FetchSongInfo(t *testing.T) {
 		assert.Nil(t, songDetail)
 	})
 
+	t.Run("validaton error", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "/info", r.URL.Path)
+			assert.Equal(t, "Test Group", r.URL.Query().Get("group"))
+			assert.Equal(t, "Test Song", r.URL.Query().Get("song"))
+
+			resp := songDetailSchema{
+				ReleaseDate: "invalid release date",
+				Text:        "Test Text",
+				Link:        "https://example.com",
+			}
+
+			respData, err := json.Marshal(resp)
+			if err != nil {
+				t.Fatalf("Failed to marshal response: %v", err)
+			}
+
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(respData)
+		}))
+		defer server.Close()
+
+		api := NewMusicInfoAPI(server.URL, nil)
+
+		songDetail, err := api.FetchSongInfo(context.Background(), entity.Song{
+			GroupName: "Test Group",
+			Name:      "Test Song",
+		})
+
+		assert.Error(t, err)
+		assert.ErrorContains(t, err, "validation error")
+		assert.Nil(t, songDetail)
+	})
+
 	t.Run("success", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "/info", r.URL.Path)
