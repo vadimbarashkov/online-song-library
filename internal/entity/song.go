@@ -58,34 +58,6 @@ type SongFilter struct {
 	Value any
 }
 
-func SongFilterByGroupName(groupName string) SongFilter {
-	return SongFilter{Field: SongGroupNameFilterField, Value: groupName}
-}
-
-func SongFilterByName(name string) SongFilter {
-	return SongFilter{Field: SongNameFilterField, Value: name}
-}
-
-func SongFilterByReleaseYear(releaseYear int) SongFilter {
-	return SongFilter{Field: SongReleaseYearFilterField, Value: releaseYear}
-}
-
-func SongFilterByReleaseDate(releaseDate time.Time) SongFilter {
-	return SongFilter{Field: SongReleaseDateFilterField, Value: releaseDate}
-}
-
-func SongFilterByReleaseDateAfter(releaseDate *time.Time) SongFilter {
-	return SongFilter{Field: SongReleaseDateAfterFilterField, Value: releaseDate}
-}
-
-func SongFilterByReleaseDateBefore(releaseDate *time.Time) SongFilter {
-	return SongFilter{Field: SongReleaseDateBeforeFilterField, Value: releaseDate}
-}
-
-func SongFilterByText(text string) SongFilter {
-	return SongFilter{Field: SongTextFilterField, Value: text}
-}
-
 // Pagination is used to control the pagination of query results by specifying the page number
 // and the number of items per page (limit).
 type Pagination struct {

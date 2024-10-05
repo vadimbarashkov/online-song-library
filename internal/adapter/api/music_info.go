@@ -12,10 +12,11 @@ import (
 )
 
 // songDetailSchema defines the structure of the song details returned by the external API.
+// TODO: add validation
 type songDetailSchema struct {
-	ReleaseDate time.Time `json:"releaseDate"`
-	Text        string    `json:"text"`
-	Link        string    `json:"link"`
+	ReleaseDate string `json:"releaseDate" validate:"required,releaseDate"`
+	Text        string `json:"text" validate:"required"`
+	Link        string `json:"link" validate:"required"`
 }
 
 // MusicInfoAPI is an API client used to fetch song information from an external music service.
@@ -39,12 +40,19 @@ func NewMusicInfoAPI(baseURL string, client *http.Client) *MusicInfoAPI {
 
 // songDetailSchemaToEntity maps the external API song detail schema to the
 // internal entity.SongDetail structure used within the application.
-func (api *MusicInfoAPI) songDetailSchemaToEntity(songDetail songDetailSchema) *entity.SongDetail {
+func (api *MusicInfoAPI) songDetailSchemaToEntity(songDetail songDetailSchema) (*entity.SongDetail, error) {
+	const op = "adapter.api.MusicInfoAPI.songDetailSchemaToEntity"
+
+	releaseDate, err := time.Parse("02.01.2006", songDetail.ReleaseDate)
+	if err != nil {
+		return nil, fmt.Errorf("%s: failed to parse time: %w", op, err)
+	}
+
 	return &entity.SongDetail{
-		ReleaseDate: songDetail.ReleaseDate,
+		ReleaseDate: releaseDate,
 		Text:        songDetail.Text,
 		Link:        songDetail.Link,
-	}
+	}, nil
 }
 
 // FetchSongInfo retrieves song details from the external API by
@@ -88,5 +96,10 @@ func (api *MusicInfoAPI) FetchSongInfo(ctx context.Context, song entity.Song) (*
 		return nil, fmt.Errorf("%s: failed to decode response body: %w", op, err)
 	}
 
-	return api.songDetailSchemaToEntity(songDetail), nil
+	res, err := api.songDetailSchemaToEntity(songDetail)
+	if err != nil {
+		return nil, fmt.Errorf("%s: failed to convert schema: %w", op, err)
+	}
+
+	return res, nil
 }
