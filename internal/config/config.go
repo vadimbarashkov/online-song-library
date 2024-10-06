@@ -26,6 +26,7 @@ type Config struct {
 
 // HTTPServer contains settings related to the HTTP server.
 type HTTPServer struct {
+	Host           string        `env:"HOST" envDefault:"localhost"`
 	Port           int           `env:"PORT" envDefault:"8080"`
 	ReadTimeout    time.Duration `env:"READ_TIMEOUT" envDefault:"5s"`
 	WriteTimeout   time.Duration `env:"WRITE_TIMEOUT" envDefault:"10s"`
