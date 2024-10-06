@@ -29,7 +29,7 @@ The Online Song Library is a web application designed to manage a collection of 
 
     ```bash
     git clone https://github.com/vadimbarashkov/online-song-library.git
-    cd url-shortener
+    cd online-song-library
     ```
 
 2. Install dependencies:
