@@ -72,7 +72,7 @@ The Online Song Library is a web application designed to manage a collection of 
 
     POSTGRES_USER=postgres
     POSTGRES_PASSWORD=postgres
-    POSTGRES_HOST=db
+    POSTGRES_HOST=localhost
     POSTGRES_DB=online_song_library
     ```
 
@@ -129,6 +129,8 @@ MIGRATIONS_PATH=migrations
 # required
 MUSIC_INFO_API=https://music.info.api
 
+# default=localhost
+HTTP_SERVER_HOST=localhost
 # default=8080
 HTTP_SERVER_PORT=8080
 # default=5s
@@ -158,9 +160,9 @@ POSTGRES_SSLMODE=disable
 
 The behavior of the application depends on the environment passed in the configuration file:
 
-1. `dev` - http server doesn't use SSL/TLS certificates and logging is structured without JSON.
-2. `test` - http server doesn't use SSL/TLS certificates and logging is structured with JSON.
-3. `prod` - http server uses SSL/TLS certificates and logging is structured with JSON.
+1. `dev` - http server doesn't use SSL/TLS certificates, logging has a text structure and a DEBUG log level.
+2. `test` - http server doesn't use SSL/TLS certificates, logging has a JSON structure and a DEBUG log level.
+3. `prod` - http server uses SSL/TLS certificates, logging has a JSON structure and a INFO log level.
 
 ## Contributing
 

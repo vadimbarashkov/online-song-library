@@ -37,6 +37,18 @@ type songUseCase interface {
 	RemoveSong(ctx context.Context, songID uuid.UUID) (int64, error)
 }
 
+// RouterOptions holds configuration options for the HTTP router.
+type RouterOptions struct {
+	SwaggerHost string // SwaggerHost is the hostname for serving Swagger documentation.
+	SwaggerPort int    // SwaggerPort is the port number for serving Swagger documentation.
+}
+
+// defaultRouterOptions provides default configuration values for the router.
+var defaultRouterOptions = RouterOptions{
+	SwaggerHost: "localhost",
+	SwaggerPort: 8080,
+}
+
 // NewRouter initializes a new HTTP router for the application.
 // It sets up middleware for logging, CORS, and error handling, as well as route definitions.
 //
@@ -48,7 +60,11 @@ type songUseCase interface {
 //	@license.url	https://opensource.org/license/mit
 //	@version		1.0
 //	@schemes		http https
-func NewRouter(logger *httplog.Logger, swaggerPort int, songUseCase songUseCase) *chi.Mux {
+func NewRouter(logger *httplog.Logger, songUseCase songUseCase, opts *RouterOptions) *chi.Mux {
+	if opts == nil {
+		opts = &defaultRouterOptions
+	}
+
 	r := chi.NewRouter()
 
 	r.Use(cors.Handler(cors.Options{
@@ -63,15 +79,15 @@ func NewRouter(logger *httplog.Logger, swaggerPort int, songUseCase songUseCase)
 	r.Use(httplog.RequestLogger(logger))
 	r.Use(middleware.Recoverer)
 
-	docs.SwaggerInfo.Host = fmt.Sprintf("localhost:%d", swaggerPort)
+	docs.SwaggerInfo.Host = fmt.Sprintf("%s:%d", opts.SwaggerHost, opts.SwaggerPort)
 	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
 	r.Route("/api/v1", func(r chi.Router) {
-		r.Get("/ping", handlePing)
+		r.Get("/ping", handlePing(logger.Logger))
 
 		r.Route("/songs", func(r chi.Router) {
 			validate := newValidate()
-			h := newSongHandler(songUseCase, validate)
+			h := newSongHandler(logger.Logger, songUseCase, validate)
 
 			r.Post("/", h.addSong)
 			r.Get("/", h.fetchSongs)
