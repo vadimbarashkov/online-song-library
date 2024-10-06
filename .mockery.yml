@@ -1,0 +1,21 @@
+with-expecter: true
+packages:
+  github.com/vadimbarashkov/online-song-library/internal/usecase:
+    interfaces:
+      musicInfoAPI:
+        config:
+          dir: "mocks/{{ .PackageName }}"
+          filename: "music_info_api_mock.go"
+          mockname: "Mock{{ .InterfaceName | camelcase }}"
+      songRepository:
+        config:
+          dir: "mocks/{{ .PackageName }}"
+          filename: "song_repository_mock.go"
+          mockname: "Mock{{ .InterfaceName | camelcase }}"
+  github.com/vadimbarashkov/online-song-library/internal/adapter/delivery/http:
+    interfaces:
+      songUseCase:
+        config:
+          dir: "mocks/{{ .PackageName }}"
+          filename: "song_use_case_mock.go"
+          mockname: "Mock{{ .InterfaceName | camelcase }}"

@@ -58,3 +58,25 @@ jobs:
         with:
           version: v1.60
           args: --timeout=30m
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: ./go.mod
+
+      - name: Run unit tests
+        run: go test -v -race -cover ./...
