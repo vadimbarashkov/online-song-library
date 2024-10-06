@@ -16,7 +16,18 @@ import (
 	"github.com/vadimbarashkov/online-song-library/internal/entity"
 )
 
-func handlePing(w http.ResponseWriter, _ *http.Request) {
+// handlePing handles the ping request.
+//
+//	@Summary		Server healthcehck
+//	@Description	Responds with "pong" to verify the server is running.
+//	@Tags			healthcheck
+//	@Produce		plain
+//	@Success		200	"Server is running"
+//	@Router			/api/v1/ping [get]
+func handlePing(w http.ResponseWriter, r *http.Request) {
+	logger := httplog.LogEntry(r.Context())
+	logger.Debug("handling ping request")
+
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprint(w, "pong")
 }
@@ -96,6 +107,18 @@ func (h *songHandler) entityToPaginationSchema(pagination *entity.Pagination) pa
 	}
 }
 
+// addSong handles adding a new song to the library.
+//
+//	@Summary		Add a new song
+//	@Description	Adds a new song to the library
+//	@Tags			songs
+//	@Accept			json
+//	@Produce		json
+//	@Param			song	body		addSongRequest	true	"Add Song"
+//	@Success		201		{object}	songSchema
+//	@Failure		400		{object}	errorResponse
+//	@Failure		500		{object}	errorResponse
+//	@Router			/api/v1/songs [post]
 func (h *songHandler) addSong(w http.ResponseWriter, r *http.Request) {
 	logger := httplog.LogEntry(r.Context())
 	logger.Debug("handling add song request")
@@ -141,6 +164,25 @@ func (h *songHandler) addSong(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, h.entityToSongSchema(song))
 }
 
+// fetchSongs handles fetching multiple songs with optional filters and pagination.
+//
+//	@Summary		Fetch multiple songs
+//	@Description	Retrieves a list of songs from the library
+//	@Tags			songs
+//	@Accept			json
+//	@Produce		json
+//	@Param			limit				query		int		false	"Limit the number of items"
+//	@Param			offset				query		int		false	"Offset for pagination"
+//	@Param			groupName			query		string	false	"Filter by group name"
+//	@Param			name				query		string	false	"Filter by song name"
+//	@Param			releaseYear			query		string	false	"Filter by release year"
+//	@Param			releaseDate			query		string	false	"Filter by exact release date (dd.MM.yyyy)"
+//	@Param			releaseDateAfter	query		string	false	"Filter songs released after the specified date (dd.MM.yyyy)"
+//	@Param			releaseDateBefore	query		string	false	"Filter songs released before the specified date (dd.MM.yyyy)"
+//	@Param			text				query		string	false	"Filter by song text"
+//	@Success		200					{object}	songsResponse
+//	@Failure		500					{object}	errorResponse
+//	@Router			/api/v1/songs [get]
 func (h *songHandler) fetchSongs(w http.ResponseWriter, r *http.Request) {
 	logger := httplog.LogEntry(r.Context())
 	logger.Info("handling fetch songs request")
@@ -165,7 +207,10 @@ func (h *songHandler) fetchSongs(w http.ResponseWriter, r *http.Request) {
 
 	logger.Debug("Songs fetched successfully", slog.Any("items", pgn.Items))
 
-	resp := songsResponse{Pagination: h.entityToPaginationSchema(pgn)}
+	resp := songsResponse{
+		Songs:      make([]songSchema, 0),
+		Pagination: h.entityToPaginationSchema(pgn),
+	}
 	for _, song := range songs {
 		resp.Songs = append(resp.Songs, h.entityToSongSchema(song))
 	}
@@ -174,6 +219,21 @@ func (h *songHandler) fetchSongs(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, resp)
 }
 
+// fetchSongWithVerses handles fetching a song along with its verses by song ID.
+//
+//	@Summary		Fetch a song with verses
+//	@Description	Retrieves a song along with its verses using the song ID
+//	@Tags			songs
+//	@Accept			json
+//	@Produce		json
+//	@Param			songID	path		string	true	"Song ID"
+//	@Param			limit	query		int		false	"Limit the number of verses"
+//	@Param			offset	query		int		false	"Offset for pagination"
+//	@Success		200		{object}	songWithVersesResponse
+//	@Failure		400		{object}	errorResponse
+//	@Failure		404		{object}	errorResponse
+//	@Failure		500		{object}	errorResponse
+//	@Router			/api/v1/songs/{songID}/text [get]
 func (h *songHandler) fetchSongWithVerses(w http.ResponseWriter, r *http.Request) {
 	logger := httplog.LogEntry(r.Context())
 	logger.Info("handling fetch song with verses request")
@@ -224,6 +284,20 @@ func (h *songHandler) fetchSongWithVerses(w http.ResponseWriter, r *http.Request
 	render.JSON(w, r, resp)
 }
 
+// modifySong handles modifying a song's details using its unique ID.
+//
+//	@Summary		Modify a song
+//	@Description	Updates a song's information using the song ID
+//	@Tags			songs
+//	@Accept			json
+//	@Produce		json
+//	@Param			songID	path		string				true	"Song ID"
+//	@Param			song	body		updateSongRequest	true	"Update Song"
+//	@Success		200		{object}	songSchema
+//	@Failure		400		{object}	errorResponse
+//	@Failure		404		{object}	errorResponse
+//	@Failure		500		{object}	errorResponse
+//	@Router			/api/v1/songs/{songID} [patch]
 func (h *songHandler) modifySong(w http.ResponseWriter, r *http.Request) {
 	logger := httplog.LogEntry(r.Context())
 	logger.Debug("handling modify song request")
@@ -293,6 +367,17 @@ func (h *songHandler) modifySong(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, h.entityToSongSchema(song))
 }
 
+// removeSong handles deleting a song by its unique ID.
+//
+//	@Summary		Remove a song
+//	@Description	Deletes a song using the song ID
+//	@Tags			songs
+//	@Param			songID	path	string	true	"Song ID"
+//	@Success		204		"Song deleted successfully"
+//	@Failure		400		{object}	errorResponse
+//	@Failure		404		{object}	errorResponse
+//	@Failure		500		{object}	errorResponse
+//	@Router			/api/v1/songs/{songID} [delete]
 func (h *songHandler) removeSong(w http.ResponseWriter, r *http.Request) {
 	logger := httplog.LogEntry(r.Context())
 	logger.Info("handling remove song request")

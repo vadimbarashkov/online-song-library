@@ -9,7 +9,6 @@
 
 !README.md
 !LICENSE
-
 !Makefile
 
 !.env.example
@@ -17,5 +16,7 @@
 !.mockery.yml
 
 !/migrations/*
+!/docs/*
+!/sow/*
 
 !*/

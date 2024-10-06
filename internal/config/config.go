@@ -35,9 +35,9 @@ type HTTPServer struct {
 	KeyFile        string        `env:"KEY_FILE"`
 }
 
-// Addr returns the address <:port> on which the HTTP server will listen.
+// Addr returns the address <host:port> on which the HTTP server will listen.
 func (s *HTTPServer) Addr() string {
-	return fmt.Sprintf(":%d", s.Port)
+	return fmt.Sprintf("localhost:%d", s.Port)
 }
 
 // Postgres contains settings required to connect to a PostgreSQL database.

@@ -11,8 +11,11 @@ import (
 	"github.com/go-chi/httplog/v2"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
+	"github.com/vadimbarashkov/online-song-library/docs"
 	"github.com/vadimbarashkov/online-song-library/internal/entity"
 	"github.com/vadimbarashkov/online-song-library/pkg/validate"
+
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 // songUseCase defines the interface for the song use case layer.
@@ -35,7 +38,16 @@ type songUseCase interface {
 
 // NewRouter initializes a new HTTP router for the application.
 // It sets up middleware for logging, CORS, and error handling, as well as route definitions.
-func NewRouter(logger *httplog.Logger, songUseCase songUseCase) *chi.Mux {
+//
+//	@title			Online Song Library API
+//	@description	This is a simple API for managing songs.
+//	@contact.name	Vadim Barashkov
+//	@contatc.email	vadimdominik2005@gmail.com
+//	@license.name	MIT
+//	@license.url	https://opensource.org/license/mit
+//	@version		1.0
+//	@schemes		http https
+func NewRouter(logger *httplog.Logger, swaggerHost string, songUseCase songUseCase) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(cors.Handler(cors.Options{
@@ -49,6 +61,9 @@ func NewRouter(logger *httplog.Logger, songUseCase songUseCase) *chi.Mux {
 	r.Use(middleware.RealIP)
 	r.Use(httplog.RequestLogger(logger))
 	r.Use(middleware.Recoverer)
+
+	docs.SwaggerInfo.Host = swaggerHost
+	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/ping", handlePing)

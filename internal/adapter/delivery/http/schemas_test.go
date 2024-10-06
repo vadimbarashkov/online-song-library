@@ -68,7 +68,7 @@ func TestParseSongFilters(t *testing.T) {
 			values: url.Values{
 				"groupName":         []string{"Test Group"},
 				"name":              []string{"Test Song"},
-				"releaseYear":       []string{"02.01.2018"},
+				"releaseYear":       []string{"2018"},
 				"releaseDate":       []string{"01.01.2019"},
 				"releaseDateAfter":  []string{"01.01.2015"},
 				"releaseDateBefore": []string{"01.01.2021"},
@@ -77,7 +77,7 @@ func TestParseSongFilters(t *testing.T) {
 			expectedFilters: []entity.SongFilter{
 				{Field: entity.SongGroupNameFilterField, Value: "Test Group"},
 				{Field: entity.SongNameFilterField, Value: "Test Song"},
-				{Field: entity.SongReleaseYearFilterField, Value: parseDate("02.01.2018")},
+				{Field: entity.SongReleaseYearFilterField, Value: 2018},
 				{Field: entity.SongReleaseDateFilterField, Value: parseDate("01.01.2019")},
 				{Field: entity.SongReleaseDateAfterFilterField, Value: parseDate("01.01.2015")},
 				{Field: entity.SongReleaseDateBeforeFilterField, Value: parseDate("01.01.2021")},

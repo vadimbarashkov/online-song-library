@@ -28,7 +28,7 @@ func setupServer(t testing.TB) (*httpexpect.Expect, *httpMock.MockSongUseCase) {
 
 	logger := httplog.NewLogger("", httplog.Options{Writer: io.Discard})
 	songUseCaseMock := httpMock.NewMockSongUseCase(t)
-	r := NewRouter(logger, songUseCaseMock)
+	r := NewRouter(logger, "", songUseCaseMock)
 
 	server := httptest.NewServer(r)
 	t.Cleanup(func() {
