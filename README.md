@@ -28,7 +28,7 @@ The Online Song Library is a web application designed to manage a collection of 
 1. Clone the repository:
 
     ```bash
-    git clone https://github.com/vadimbarashkov/url-shortener.git
+    git clone https://github.com/vadimbarashkov/online-song-library.git
     cd url-shortener
     ```
 
