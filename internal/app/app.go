@@ -50,7 +50,7 @@ func Run(ctx context.Context, cfg *config.Config) error {
 	songUseCase := usecase.NewSongUseCase(musicInfoAPI, songRepo)
 
 	logger := setupLogger(cfg.Env)
-	r := delivery.NewRouter(logger, cfg.HTTPServer.Addr(), songUseCase)
+	r := delivery.NewRouter(logger, cfg.HTTPServer.Port, songUseCase)
 
 	server := &http.Server{
 		Addr:           cfg.HTTPServer.Addr(),

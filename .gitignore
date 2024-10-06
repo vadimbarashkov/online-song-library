@@ -19,4 +19,8 @@
 !/docs/*
 !/sow/*
 
+!Dockerfile
+!.dockerignore
+!docker-compose.yml
+
 !*/

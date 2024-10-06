@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"strings"
 
@@ -47,7 +48,7 @@ type songUseCase interface {
 //	@license.url	https://opensource.org/license/mit
 //	@version		1.0
 //	@schemes		http https
-func NewRouter(logger *httplog.Logger, swaggerHost string, songUseCase songUseCase) *chi.Mux {
+func NewRouter(logger *httplog.Logger, swaggerPort int, songUseCase songUseCase) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(cors.Handler(cors.Options{
@@ -62,7 +63,7 @@ func NewRouter(logger *httplog.Logger, swaggerHost string, songUseCase songUseCa
 	r.Use(httplog.RequestLogger(logger))
 	r.Use(middleware.Recoverer)
 
-	docs.SwaggerInfo.Host = swaggerHost
+	docs.SwaggerInfo.Host = fmt.Sprintf("localhost:%d", swaggerPort)
 	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
 	r.Route("/api/v1", func(r chi.Router) {
