@@ -35,22 +35,32 @@ import (
 func Run(ctx context.Context, cfg *config.Config) error {
 	const op = "app.Run"
 
+	logger := setupLogger(cfg.Env)
+
+	logger.Info("connecting to the database")
+
 	db, err := postgres.New(ctx, cfg.Postgres.DSN())
 	if err != nil {
 		return fmt.Errorf("%s: failed to connect to database: %w", op, err)
 	}
 	defer db.Close()
 
+	logger.Info("running database migrations")
+
 	if err := postgres.RunMigrations(cfg.MigrationsPath, cfg.Postgres.DSN()); err != nil {
 		return fmt.Errorf("%s: failed to run migrations: %w", op, err)
 	}
+
+	logger.Info("preparing server")
 
 	songRepo := repo.NewSongRepository(db)
 	musicInfoAPI := api.NewMusicInfoAPI(cfg.MusicInfoAPI, nil)
 	songUseCase := usecase.NewSongUseCase(musicInfoAPI, songRepo)
 
-	logger := setupLogger(cfg.Env)
-	r := delivery.NewRouter(logger, cfg.HTTPServer.Port, songUseCase)
+	r := delivery.NewRouter(logger, songUseCase, &delivery.RouterOptions{
+		SwaggerHost: cfg.HTTPServer.Host,
+		SwaggerPort: cfg.HTTPServer.Port,
+	})
 
 	server := &http.Server{
 		Addr:           cfg.HTTPServer.Addr(),
@@ -67,6 +77,8 @@ func Run(ctx context.Context, cfg *config.Config) error {
 	g, ctx := errgroup.WithContext(ctx)
 
 	g.Go(func() error {
+		logger.Info("running server", slog.Any("addr", cfg.HTTPServer.Addr()))
+
 		var err error
 
 		switch cfg.Env {
@@ -85,6 +97,8 @@ func Run(ctx context.Context, cfg *config.Config) error {
 
 	g.Go(func() error {
 		<-ctx.Done()
+
+		logger.Info("shutting down the server")
 
 		if err := server.Shutdown(ctx); err != nil {
 			return fmt.Errorf("%s: failed to shutdown server: %w", op, err)
