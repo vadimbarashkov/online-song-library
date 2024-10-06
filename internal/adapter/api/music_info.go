@@ -8,48 +8,57 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/vadimbarashkov/online-song-library/internal/entity"
+	"github.com/vadimbarashkov/online-song-library/pkg/validate"
 )
 
 // songDetailSchema defines the structure of the song details returned by the external API.
 type songDetailSchema struct {
-	ReleaseDate time.Time `json:"releaseDate"`
-	Text        string    `json:"text"`
-	Link        string    `json:"link"`
+	ReleaseDate string `json:"releaseDate" validate:"required,releaseDate"`
+	Text        string `json:"text" validate:"required"`
+	Link        string `json:"link" validate:"required"`
 }
 
 // MusicInfoAPI is an API client used to fetch song information from an external music service.
 type MusicInfoAPI struct {
-	baseURL string
-	client  *http.Client
+	baseURL  string
+	client   *http.Client
+	validate *validator.Validate
 }
 
-// NewMusicInfoAPI creates a new instance of MusicInfoAPI with the provided
-// base URL and HTTP client. If no client is provided, the default client is used.
+// NewMusicInfoAPI creates a new instance of MusicInfoAPI with the provided base URL and HTTP client.
+// If no client is provided, the default HTTP client is used. It also registers custom validations.
 func NewMusicInfoAPI(baseURL string, client *http.Client) *MusicInfoAPI {
 	if client == nil {
 		client = http.DefaultClient
 	}
 
+	v := validator.New()
+	_ = v.RegisterValidation("releaseDate", validate.ReleaseDateValidation)
+
 	return &MusicInfoAPI{
-		baseURL: baseURL,
-		client:  client,
+		baseURL:  baseURL,
+		client:   client,
+		validate: v,
 	}
 }
 
-// songDetailSchemaToEntity maps the external API song detail schema to the
-// internal entity.SongDetail structure used within the application.
+// songDetailSchemaToEntity maps the external API song detail schema to the internal entity.SongDetail structure.
+// It parses the release date from string format and returns a SongDetail entity.
 func (api *MusicInfoAPI) songDetailSchemaToEntity(songDetail songDetailSchema) *entity.SongDetail {
+	releaseDate, _ := time.Parse("02.01.2006", songDetail.ReleaseDate)
+
 	return &entity.SongDetail{
-		ReleaseDate: songDetail.ReleaseDate,
+		ReleaseDate: releaseDate,
 		Text:        songDetail.Text,
 		Link:        songDetail.Link,
 	}
 }
 
-// FetchSongInfo retrieves song details from the external API by
-// performing an HTTP GET request. It requires the song group and title as parameters.
-func (api *MusicInfoAPI) FetchSongInfo(ctx context.Context, group, song string) (*entity.SongDetail, error) {
+// FetchSongInfo retrieves song details from the external API by performing an HTTP GET request.
+// The song's group name and title are passed as query parameters. It returns a SongDetail entity or an error.
+func (api *MusicInfoAPI) FetchSongInfo(ctx context.Context, song entity.Song) (*entity.SongDetail, error) {
 	const op = "adapter.api.MusicInfoAPI.FetchSongInfo"
 
 	path, err := url.JoinPath(api.baseURL, "/info")
@@ -63,8 +72,8 @@ func (api *MusicInfoAPI) FetchSongInfo(ctx context.Context, group, song string) 
 	}
 
 	query := url.Query()
-	query.Set("group", group)
-	query.Set("song", song)
+	query.Set("group", song.GroupName)
+	query.Set("song", song.Name)
 	url.RawQuery = query.Encode()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url.String(), nil)
@@ -86,6 +95,10 @@ func (api *MusicInfoAPI) FetchSongInfo(ctx context.Context, group, song string) 
 
 	if err := json.NewDecoder(resp.Body).Decode(&songDetail); err != nil {
 		return nil, fmt.Errorf("%s: failed to decode response body: %w", op, err)
+	}
+
+	if err := api.validate.Struct(songDetail); err != nil {
+		return nil, fmt.Errorf("%s: validation error: %w", op, err)
 	}
 
 	return api.songDetailSchemaToEntity(songDetail), nil

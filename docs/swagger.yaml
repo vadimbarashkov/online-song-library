@@ -1,0 +1,362 @@
+definitions:
+  http.addSongRequest:
+    description: Defines the expected structure for requests to add a new song.
+    properties:
+      group:
+        example: The Rolling Stones
+        type: string
+      song:
+        example: Paint It Black
+        type: string
+    required:
+    - group
+    - song
+    type: object
+  http.errorResponse:
+    description: Represents the structure of error responses from the API.
+    properties:
+      details:
+        example:
+        - Group name is required
+        - Song name is required
+        items:
+          type: string
+        type: array
+      message:
+        example: invalid request body
+        type: string
+      status:
+        example: error
+        type: string
+    type: object
+  http.paginationSchema:
+    description: Represents pagination metadata for API responses.
+    properties:
+      items:
+        example: 2
+        type: integer
+      limit:
+        example: 10
+        type: integer
+      offset:
+        example: 0
+        type: integer
+      total:
+        example: 100
+        type: integer
+    type: object
+  http.songDetailSchema:
+    description: Represents detailed information about a song.
+    properties:
+      link:
+        example: https://example.com/heyjude
+        type: string
+      releaseDate:
+        example: 02.01.1968
+        type: string
+      text:
+        example: Hey Jude, don't make it bad...
+        type: string
+    type: object
+  http.songSchema:
+    description: Represents the structure of a song entity for API responses.
+    properties:
+      created_at:
+        example: "2024-10-05T14:48:00Z"
+        type: string
+      groupName:
+        example: The Beatles
+        type: string
+      id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      name:
+        example: Hey Jude
+        type: string
+      songDetail:
+        $ref: '#/definitions/http.songDetailSchema'
+      updated_at:
+        example: "2024-10-06T09:12:00Z"
+        type: string
+    type: object
+  http.songWithVersesResponse:
+    description: Represents the structure of the response for fetching a song with
+      its verses.
+    properties:
+      pagination:
+        $ref: '#/definitions/http.paginationSchema'
+      song:
+        $ref: '#/definitions/http.songWithVersesSchema'
+    type: object
+  http.songWithVersesSchema:
+    description: Represents a song and its verses for API responses.
+    properties:
+      created_at:
+        example: "2024-10-05T14:48:00Z"
+        type: string
+      groupName:
+        example: Queen
+        type: string
+      id:
+        example: 123e4567-e89b-12d3-a456-426614174001
+        type: string
+      name:
+        example: Bohemian Rhapsody
+        type: string
+      updated_at:
+        example: "2024-10-06T09:12:00Z"
+        type: string
+      verses:
+        example:
+        - Is this the real life?
+        - Is this just fantasy?
+        items:
+          type: string
+        type: array
+    type: object
+  http.songsResponse:
+    description: Represents the structure of the response for fetching multiple songs.
+    properties:
+      pagination:
+        $ref: '#/definitions/http.paginationSchema'
+      songs:
+        items:
+          $ref: '#/definitions/http.songSchema'
+        type: array
+    type: object
+  http.updateSongRequest:
+    description: Defines the expected structure for requests to update an existing
+      song.
+    properties:
+      groupName:
+        example: Led Zeppelin
+        type: string
+      link:
+        example: https://example.com/stairway
+        type: string
+      name:
+        example: Stairway to Heaven
+        type: string
+      releaseDate:
+        example: 08.11.1971
+        type: string
+      text:
+        example: There's a lady who's sure...
+        type: string
+    type: object
+info:
+  contact:
+    name: Vadim Barashkov
+  description: This is a simple API for managing songs.
+  license:
+    name: MIT
+    url: https://opensource.org/license/mit
+  title: Online Song Library API
+  version: "1.0"
+paths:
+  /api/v1/ping:
+    get:
+      description: Responds with "pong" to verify the server is running.
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: Server is running
+      summary: Server healthcehck
+      tags:
+      - healthcheck
+  /api/v1/songs:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a list of songs from the library
+      parameters:
+      - description: Limit the number of items
+        in: query
+        name: limit
+        type: integer
+      - description: Offset for pagination
+        in: query
+        name: offset
+        type: integer
+      - description: Filter by group name
+        in: query
+        name: groupName
+        type: string
+      - description: Filter by song name
+        in: query
+        name: name
+        type: string
+      - description: Filter by release year
+        in: query
+        name: releaseYear
+        type: string
+      - description: Filter by exact release date (dd.MM.yyyy)
+        in: query
+        name: releaseDate
+        type: string
+      - description: Filter songs released after the specified date (dd.MM.yyyy)
+        in: query
+        name: releaseDateAfter
+        type: string
+      - description: Filter songs released before the specified date (dd.MM.yyyy)
+        in: query
+        name: releaseDateBefore
+        type: string
+      - description: Filter by song text
+        in: query
+        name: text
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.songsResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.errorResponse'
+      summary: Fetch multiple songs
+      tags:
+      - songs
+    post:
+      consumes:
+      - application/json
+      description: Adds a new song to the library
+      parameters:
+      - description: Add Song
+        in: body
+        name: song
+        required: true
+        schema:
+          $ref: '#/definitions/http.addSongRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/http.songSchema'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.errorResponse'
+      summary: Add a new song
+      tags:
+      - songs
+  /api/v1/songs/{songID}:
+    delete:
+      description: Deletes a song using the song ID
+      parameters:
+      - description: Song ID
+        in: path
+        name: songID
+        required: true
+        type: string
+      responses:
+        "204":
+          description: Song deleted successfully
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/http.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.errorResponse'
+      summary: Remove a song
+      tags:
+      - songs
+    patch:
+      consumes:
+      - application/json
+      description: Updates a song's information using the song ID
+      parameters:
+      - description: Song ID
+        in: path
+        name: songID
+        required: true
+        type: string
+      - description: Update Song
+        in: body
+        name: song
+        required: true
+        schema:
+          $ref: '#/definitions/http.updateSongRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.songSchema'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/http.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.errorResponse'
+      summary: Modify a song
+      tags:
+      - songs
+  /api/v1/songs/{songID}/text:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a song along with its verses using the song ID
+      parameters:
+      - description: Song ID
+        in: path
+        name: songID
+        required: true
+        type: string
+      - description: Limit the number of verses
+        in: query
+        name: limit
+        type: integer
+      - description: Offset for pagination
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.songWithVersesResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/http.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/http.errorResponse'
+      summary: Fetch a song with verses
+      tags:
+      - songs
+schemes:
+- http
+- https
+swagger: "2.0"

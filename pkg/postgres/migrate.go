@@ -14,7 +14,7 @@ import (
 func RunMigrations(path string, dsn string) error {
 	const op = "postgres.RunMigrations"
 
-	m, err := migrate.New(path, dsn)
+	m, err := migrate.New(fmt.Sprintf("file://%s", path), dsn)
 	if err != nil {
 		return fmt.Errorf("%s: failed to initialize migrations: %w", op, err)
 	}

@@ -17,14 +17,14 @@ import (
 // songRow represents a row in the 'songs' table of the database.
 // This struct is used internally within the repository to map SQL query results.
 type songRow struct {
-	ID          uuid.UUID `db:"id"`
-	GroupName   string    `db:"group_name"`
-	Song        string    `db:"song"`
-	ReleaseDate time.Time `db:"release_date"`
-	Text        string    `db:"text"`
-	Link        string    `db:"link"`
-	CreatedAt   time.Time `db:"created_at"`
-	UpdatedAt   time.Time `db:"updated_at"`
+	ID          uuid.UUID      `db:"id"`
+	GroupName   string         `db:"group_name"`
+	Name        string         `db:"name"`
+	ReleaseDate sql.NullTime   `db:"release_date"`
+	Text        sql.NullString `db:"text"`
+	Link        sql.NullString `db:"link"`
+	CreatedAt   time.Time      `db:"created_at"`
+	UpdatedAt   time.Time      `db:"updated_at"`
 }
 
 // SongRepository provides methods for interacting with the 'songs' table in the database.
@@ -44,28 +44,36 @@ func NewSongRepository(db *sqlx.DB) *SongRepository {
 // internally to prepare the song entity for database insertion or updates.
 func (r *SongRepository) entityToRow(song entity.Song) songRow {
 	return songRow{
-		ID:          song.ID,
-		GroupName:   song.Group,
-		Song:        song.Song,
-		ReleaseDate: song.SongDetail.ReleaseDate,
-		Text:        song.SongDetail.Text,
-		Link:        song.SongDetail.Link,
-		CreatedAt:   song.CreatedAt,
-		UpdatedAt:   song.UpdatedAt,
+		ID:        song.ID,
+		GroupName: song.GroupName,
+		Name:      song.Name,
+		ReleaseDate: sql.NullTime{
+			Time:  song.SongDetail.ReleaseDate,
+			Valid: !song.SongDetail.ReleaseDate.IsZero(),
+		},
+		Text: sql.NullString{
+			String: song.SongDetail.Text,
+			Valid:  song.SongDetail.Text != "",
+		},
+		Link: sql.NullString{
+			String: song.SongDetail.Link,
+			Valid:  song.SongDetail.Link != "",
+		},
+		CreatedAt: song.CreatedAt,
+		UpdatedAt: song.UpdatedAt,
 	}
 }
 
-// entityToMap converts an entity.Song object to a map of field names and values,
-// which is used to dynamically generate SQL UPDATE clauses. Fields that are empty or zero-valued
-// are omitted from the resulting map, ensuring that only non-empty fields are updated.
+// entityToMap converts an entity.Song object to a map of field names and values.
+// This map is used to dynamically generate SQL UPDATE clauses, omitting empty or zero-valued fields.
 func (r *SongRepository) entityToMap(song entity.Song) map[string]any {
 	clauses := make(map[string]any)
 
-	if song.Group != "" {
-		clauses["group_name"] = song.Group
+	if song.GroupName != "" {
+		clauses["group_name"] = song.GroupName
 	}
-	if song.Song != "" {
-		clauses["song"] = song.Song
+	if song.Name != "" {
+		clauses["name"] = song.Name
 	}
 	if !song.SongDetail.ReleaseDate.IsZero() {
 		clauses["release_date"] = song.SongDetail.ReleaseDate
@@ -84,22 +92,21 @@ func (r *SongRepository) entityToMap(song entity.Song) map[string]any {
 // This function helps to map database rows to domain entities, making the data accessible to the application.
 func (r *SongRepository) rowToEntity(row songRow) *entity.Song {
 	return &entity.Song{
-		ID:    row.ID,
-		Group: row.GroupName,
-		Song:  row.Song,
+		ID:        row.ID,
+		GroupName: row.GroupName,
+		Name:      row.Name,
 		SongDetail: entity.SongDetail{
-			ReleaseDate: row.ReleaseDate,
-			Text:        row.Text,
-			Link:        row.Link,
+			ReleaseDate: row.ReleaseDate.Time,
+			Text:        row.Text.String,
+			Link:        row.Link.String,
 		},
 		CreatedAt: row.CreatedAt,
 		UpdatedAt: row.UpdatedAt,
 	}
 }
 
-// rowsToEntities converts a slice of songRow objects to a slice of entity.Song pointers.
-// This function is useful when retrieving multiple rows from the database and transforming them
-// into a format suitable for application-level use.
+// rowsToEntities converts a slice of songRow objects to a slice of pointers to entity.Song objects.
+// This function is useful for retrieving multiple rows from the database and transforming them into application-level entities.
 func (r *SongRepository) rowsToEntities(rows []songRow) []*entity.Song {
 	songs := make([]*entity.Song, 0, len(rows))
 
@@ -110,56 +117,62 @@ func (r *SongRepository) rowsToEntities(rows []songRow) []*entity.Song {
 	return songs
 }
 
-// setFilterConditions adds SQL WHERE conditions to the query builder (squirrel.SelectBuilder) based on the
-// provided SongFilter. It allows filtering the results by group name, song title, release year/date, and text content.
-func (r *SongRepository) setFilterConditions(sb sq.SelectBuilder, filter *entity.SongFilter) sq.SelectBuilder {
-	if filter == nil {
-		return sb
-	}
+// applySongFilters adds SQL WHERE conditions to the query builder (squirrel.SelectBuilder)
+// based on the provided SongFilter. It allows filtering results by group name, song title,
+// release year/date, and text content.
+func (r *SongRepository) applySongFilters(sb sq.SelectBuilder, filters ...entity.SongFilter) sq.SelectBuilder {
+	for _, filter := range filters {
+		field := filter.Field
+		value := filter.Value
 
-	if filter.Group != "" {
-		sb = sb.Where("group_name ILIKE ?", fmt.Sprint("%", filter.Group, "%"))
-	}
-	if filter.Song != "" {
-		sb = sb.Where("song ILIKE ?", fmt.Sprint("%", filter.Song, "%"))
-	}
-	if filter.ReleaseYear != 0 {
-		sb = sb.Where("EXTRACT(YEAR FROM release_date) = ?", filter.ReleaseYear)
-	}
-	if !filter.ReleaseDate.IsZero() {
-		sb = sb.Where(sq.Eq{"release_date": filter.ReleaseDate})
-	}
-	if !filter.ReleaseDateAfter.IsZero() {
-		sb = sb.Where("release_date > ?", filter.ReleaseDateAfter)
-	}
-	if !filter.ReleaseDateBefore.IsZero() {
-		sb = sb.Where("release_date < ?", filter.ReleaseDateBefore)
-	}
-	if filter.Text != "" {
-		sb = sb.Where("text ILIKE ?", fmt.Sprint("%", filter.Text, "%"))
+		switch field {
+		case entity.SongGroupNameFilterField:
+			if val, ok := value.(string); ok {
+				sb = sb.Where("group_name ILIKE ?", fmt.Sprint("%", val, "%"))
+			}
+		case entity.SongNameFilterField:
+			if val, ok := value.(string); ok {
+				sb = sb.Where("name ILIKE ?", fmt.Sprint("%", val, "%"))
+			}
+		case entity.SongReleaseYearFilterField:
+			if val, ok := value.(int); ok {
+				sb = sb.Where("EXTRACT(YEAR FROM release_date) = ?", val)
+			}
+		case entity.SongReleaseDateFilterField:
+			if val, ok := value.(time.Time); ok {
+				sb = sb.Where(sq.Eq{"release_date": val})
+			}
+		case entity.SongReleaseDateAfterFilterField:
+			if val, ok := value.(time.Time); ok {
+				sb = sb.Where("release_date > ?", val)
+			}
+		case entity.SongReleaseDateBeforeFilterField:
+			if val, ok := value.(time.Time); ok {
+				sb = sb.Where("release_date < ?", val)
+			}
+		case entity.SongTextFilterField:
+			if val, ok := value.(string); ok {
+				sb = sb.Where("text ILIKE ?", val)
+			}
+		}
 	}
 
 	return sb
 }
 
-// Save inserts a new song record into the 'songs' table. If any required fields are missing, it returns an error.
-// It returns the saved song entity if successful or an error if the operation fails.
+// Save inserts a new song record into the 'songs' table.
+// It returns the saved song entity if successful or an error if any required fields are missing or if the operation fails.
 func (r *SongRepository) Save(ctx context.Context, song entity.Song) (*entity.Song, error) {
 	const op = "adapter.repository.postgres.SongRepository.Save"
 
 	row := r.entityToRow(song)
-	if row.GroupName == "" ||
-		row.Song == "" ||
-		row.ReleaseDate.IsZero() ||
-		row.Text == "" ||
-		row.Link == "" {
-
+	if row.GroupName == "" || row.Name == "" {
 		return nil, fmt.Errorf("%s: missing required fields for saving song", op)
 	}
 
 	query, args, err := sq.
-		Insert("songs").Columns("group_name", "song", "release_date", "text", "link").
-		Values(row.GroupName, row.Song, row.ReleaseDate, row.Text, row.Link).
+		Insert("songs").Columns("group_name", "name", "release_date", "text", "link").
+		Values(row.GroupName, row.Name, row.ReleaseDate, row.Text, row.Link).
 		Suffix("RETURNING *").
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
@@ -177,45 +190,55 @@ func (r *SongRepository) Save(ctx context.Context, song entity.Song) (*entity.So
 }
 
 // GetAll retrieves all song records that match the provided filter conditions and pagination settings.
-// It uses the SongFilter struct for filtering the results and Pagination for controlling the result set size.
-// The function returns a slice of song entities or an error if the operation fails.
-func (r *SongRepository) GetAll(ctx context.Context, filter *entity.SongFilter, pagination *entity.Pagination) ([]*entity.Song, error) {
+// It returns a slice of song entities along with updated pagination information, or an error if the operation fails.
+func (r *SongRepository) GetAll(
+	ctx context.Context,
+	pagination entity.Pagination,
+	filters ...entity.SongFilter,
+) ([]*entity.Song, *entity.Pagination, error) {
 	const op = "adapter.repository.postgres.SongRepository.GetAll"
 
-	if pagination != nil {
-		if pagination.Page < 1 {
-			pagination.Page = entity.DefaultPage
-		}
-		if pagination.Limit < 1 {
-			pagination.Limit = entity.DefaultLimit
-		}
-	} else {
-		pagination = &entity.Pagination{
-			Page:  entity.DefaultPage,
-			Limit: entity.DefaultLimit,
-		}
+	if pagination.IsEmpty() {
+		pagination.SetDefault()
 	}
 
 	sb := sq.
 		Select("*").From("songs").
-		Offset(uint64(pagination.GetOffset())).
-		Limit(uint64(pagination.Limit)).
+		Limit(pagination.Limit).
+		Offset(pagination.Offset).
 		PlaceholderFormat(sq.Dollar)
 
-	sb = r.setFilterConditions(sb, filter)
+	sb = r.applySongFilters(sb, filters...)
 
 	query, args, err := sb.ToSql()
 	if err != nil {
-		return nil, fmt.Errorf("%s: failed to build sql query: %w", op, err)
+		return nil, nil, fmt.Errorf("%s: failed to build sql query: %w", op, err)
 	}
 
 	var rows []songRow
 
 	if err := r.db.SelectContext(ctx, &rows, query, args...); err != nil {
-		return nil, fmt.Errorf("%s: failed to get rows from 'songs' table: %w", op, err)
+		return nil, nil, fmt.Errorf("%s: failed to get rows from 'songs' table: %w", op, err)
 	}
 
-	return r.rowsToEntities(rows), nil
+	query, args, err = sq.
+		Select("COUNT(*)").From("songs").
+		PlaceholderFormat(sq.Dollar).
+		ToSql()
+	if err != nil {
+		return nil, nil, fmt.Errorf("%s: failed to build sql query: %w", op, err)
+	}
+
+	var totalCount uint64
+
+	if err := r.db.GetContext(ctx, &totalCount, query, args...); err != nil {
+		return nil, nil, fmt.Errorf("%s: failed to get total count of rows from 'songs' table: %w", op, err)
+	}
+
+	pagination.Items = uint64(len(rows))
+	pagination.Total = totalCount
+
+	return r.rowsToEntities(rows), &pagination, nil
 }
 
 // GetByID retrieves a song by its ID from the 'songs' table.
@@ -245,9 +268,8 @@ func (r *SongRepository) GetByID(ctx context.Context, songID uuid.UUID) (*entity
 	return r.rowToEntity(row), nil
 }
 
-// Update modifies an existing song record in the database, identified by its ID.
-// It uses the entityToMap function to dynamically generate the SET clauses in the SQL update query.
-// The method returns the updated song entity or an error if the song is not found or the update fails.
+// Update modifies an existing song record in the 'songs' table based on its ID.
+// It returns the updated song entity or an error if the update operation fails or if the song does not exist.
 func (r *SongRepository) Update(ctx context.Context, songID uuid.UUID, song entity.Song) (*entity.Song, error) {
 	const op = "adapter.repository.postgres.SongRepository.Update"
 
@@ -281,9 +303,8 @@ func (r *SongRepository) Update(ctx context.Context, songID uuid.UUID, song enti
 	return r.rowToEntity(updatedRow), nil
 }
 
-// Delete removes a song record from the 'songs' table, identified by its ID.
-// The method returns the number of rows affected by the delete operation.
-// If no rows were deleted, it returns an ErrSongNotFound error.
+// Delete removes a song record from the 'songs' table based on its ID.
+// It returns an error if the delete operation fails or if the song does not exist.
 func (r *SongRepository) Delete(ctx context.Context, songID uuid.UUID) (int64, error) {
 	const op = "adapter.repository.postgres.SongRepository.Delete"
 

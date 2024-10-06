@@ -13,7 +13,7 @@ func TestHTTPServer_Addr(t *testing.T) {
 		Port: 8080,
 	}
 
-	assert.Equal(t, ":8080", s.Addr())
+	assert.Equal(t, "localhost:8080", s.Addr())
 }
 
 func TestPostgres_DSN(t *testing.T) {
@@ -64,6 +64,7 @@ POSTGRES_DB=test
 		})
 
 		data := `ENV=test
+MUSIC_INFO_API=https://example.com.api
 POSTGRES_USER=test
 POSTGRES_PASSWORD=test
 POSTGRES_DB=test
@@ -75,6 +76,7 @@ POSTGRES_DB=test
 		assert.NoError(t, err)
 		assert.NotNil(t, cfg)
 		assert.Equal(t, "test", cfg.Env)
+		assert.Equal(t, "https://example.com.api", cfg.MusicInfoAPI)
 		assert.Equal(t, "test", cfg.Postgres.User)
 		assert.Equal(t, "test", cfg.Postgres.Password)
 		assert.Equal(t, "test", cfg.Postgres.DB)

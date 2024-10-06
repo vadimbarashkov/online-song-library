@@ -2,6 +2,8 @@ SERVER_SRC_DIR=./cmd/server
 SERVER_BINARY_NAME=server
 BUILD_DIR=./bin
 MIGRATIONS_DIR=./migrations
+SWAGGER_GENERAL_INFO_FILE=router.go
+SWAGGER_ANNOTATIONS_DIR=./internal/adapter/delivery/http/
 
 CGO_ENABLED=0
 GOARCH=amd64
@@ -25,6 +27,14 @@ lint:
 .PHONY: mock
 mock:
 	mockery
+
+.PHONY: swag/fmt
+swag/fmt:
+	swag fmt
+
+.PHONY: swag/init
+swag/init:
+	swag init --generalInfo $(SWAGGER_GENERAL_INFO_FILE) --dir $(SWAGGER_ANNOTATIONS_DIR)
 
 .PHONY: test/unit
 test/unit:
@@ -68,7 +78,7 @@ migrations/down:
 	migrate -database $(DATABASE_DSN) -path $(MIGRATIONS_DIR) down -all
 
 .PHONY: ci
-ci: tidy fmt build/server lint test/unit clean
+ci: tidy fmt swag/fmt build/server lint test/unit clean
 
 .PHONY: git/push
 git/push: ci

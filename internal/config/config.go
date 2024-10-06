@@ -17,9 +17,11 @@ const (
 
 // Config holds the configuration settings for the application.
 type Config struct {
-	Env        string `env:"ENV" envDefault:"dev"`
-	HTTPServer `envPrefix:"HTTP_SERVER_"`
-	Postgres   `envPrefix:"POSTGRES_"`
+	Env            string `env:"ENV" envDefault:"dev"`
+	MigrationsPath string `env:"MIGRATIONS_PATH" envDefault:"migrations"`
+	MusicInfoAPI   string `env:"MUSIC_INFO_API,required"`
+	HTTPServer     `envPrefix:"HTTP_SERVER_"`
+	Postgres       `envPrefix:"POSTGRES_"`
 }
 
 // HTTPServer contains settings related to the HTTP server.
@@ -33,9 +35,9 @@ type HTTPServer struct {
 	KeyFile        string        `env:"KEY_FILE"`
 }
 
-// Addr returns the address <:port> on which the HTTP server will listen.
+// Addr returns the address <host:port> on which the HTTP server will listen.
 func (s *HTTPServer) Addr() string {
-	return fmt.Sprintf(":%d", s.Port)
+	return fmt.Sprintf("localhost:%d", s.Port)
 }
 
 // Postgres contains settings required to connect to a PostgreSQL database.

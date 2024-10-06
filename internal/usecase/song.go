@@ -11,13 +11,13 @@ import (
 
 // musicInfoAPI defines the interface for fetching song information from an external Music Info API.
 type musicInfoAPI interface {
-	FetchSongInfo(ctx context.Context, group, song string) (*entity.SongDetail, error)
+	FetchSongInfo(ctx context.Context, song entity.Song) (*entity.SongDetail, error)
 }
 
 // songRepository defines the interface for song repository operations.
 type songRepository interface {
 	Save(ctx context.Context, song entity.Song) (*entity.Song, error)
-	GetAll(ctx context.Context, filter *entity.SongFilter, pagination *entity.Pagination) ([]*entity.Song, error)
+	GetAll(ctx context.Context, pagination entity.Pagination, filters ...entity.SongFilter) ([]*entity.Song, *entity.Pagination, error)
 	GetByID(ctx context.Context, songID uuid.UUID) (*entity.Song, error)
 	Update(ctx context.Context, songID uuid.UUID, song entity.Song) (*entity.Song, error)
 	Delete(ctx context.Context, songID uuid.UUID) (int64, error)
@@ -37,12 +37,12 @@ func NewSongUseCase(musicInfoAPI musicInfoAPI, songRepo songRepository) *SongUse
 	}
 }
 
-// CreateSong creates a new song by fetching its details from the music info API and saving it to the repository.
+// AddSong creates a new song by fetching its details from the music info API and saving it to the repository.
 // It returns the saved song or an error if the process fails.
-func (uc *SongUseCase) CreateSong(ctx context.Context, song entity.Song) (*entity.Song, error) {
-	const op = "usecase.CreateSong"
+func (uc *SongUseCase) AddSong(ctx context.Context, song entity.Song) (*entity.Song, error) {
+	const op = "usecase.AddSong"
 
-	songDetail, err := uc.musicInfoApi.FetchSongInfo(ctx, song.Group, song.Song)
+	songDetail, err := uc.musicInfoApi.FetchSongInfo(ctx, song)
 	if err != nil {
 		return nil, fmt.Errorf("%s: failed to fetch song detail from music info api: %w", op, err)
 	}
@@ -51,7 +51,7 @@ func (uc *SongUseCase) CreateSong(ctx context.Context, song entity.Song) (*entit
 
 	savedSong, err := uc.songRepo.Save(ctx, song)
 	if err != nil {
-		return nil, fmt.Errorf("%s: failed to save song: %w", op, err)
+		return nil, fmt.Errorf("%s: failed to add song: %w", op, err)
 	}
 
 	return savedSong, nil
@@ -59,59 +59,63 @@ func (uc *SongUseCase) CreateSong(ctx context.Context, song entity.Song) (*entit
 
 // FetchSongs retrieves all songs from the repository that match the provided filter and pagination parameters.
 // It returns a slice of songs or an error if the retrieval fails.
-func (uc *SongUseCase) FetchSongs(ctx context.Context, filter *entity.SongFilter, pagination *entity.Pagination) ([]*entity.Song, error) {
+func (uc *SongUseCase) FetchSongs(
+	ctx context.Context,
+	pagination entity.Pagination,
+	filters ...entity.SongFilter,
+) ([]*entity.Song, *entity.Pagination, error) {
 	const op = "usecase.FetchSongs"
 
-	songs, err := uc.songRepo.GetAll(ctx, filter, pagination)
+	songs, pgn, err := uc.songRepo.GetAll(ctx, pagination, filters...)
 	if err != nil {
-		return nil, fmt.Errorf("%s: failed to fetch songs: %w", op, err)
+		return nil, nil, fmt.Errorf("%s: failed to fetch songs: %w", op, err)
 	}
 
-	return songs, nil
+	return songs, pgn, nil
 }
 
-// FetchSongText retrieves the text of a specific song by its ID, applying pagination if specified.
-// It returns the song text or an error if the retrieval fails.
-func (uc *SongUseCase) FetchSongText(ctx context.Context, songID uuid.UUID, pagination *entity.Pagination) (*entity.SongText, error) {
+// FetchSongWithVerses retrieves the text of a specific song by its ID, breaking it into verses and applying pagination if specified.
+// It returns the song with verses or an error if the retrieval fails.
+func (uc *SongUseCase) FetchSongWithVerses(
+	ctx context.Context,
+	songID uuid.UUID,
+	pagination entity.Pagination,
+) (*entity.SongWithVerses, *entity.Pagination, error) {
 	const op = "usecase.FetchSongText"
 
 	song, err := uc.songRepo.GetByID(ctx, songID)
 	if err != nil {
-		return nil, fmt.Errorf("%s: failed to fetch song: %w", op, err)
+		return nil, nil, fmt.Errorf("%s: failed to fetch song: %w", op, err)
 	}
 
 	verses := strings.Split(song.SongDetail.Text, "\n\n")
+	versesCount := uint64(len(verses))
 
-	if pagination != nil {
-		if pagination.Page < 1 {
-			pagination.Page = entity.DefaultPage
-		}
-		if pagination.Limit < 1 {
-			pagination.Limit = entity.DefaultLimit
-		}
-	} else {
-		pagination = entity.NewPagination(entity.DefaultPage, entity.DefaultLimit)
+	if pagination.IsEmpty() {
+		pagination.SetDefault()
 	}
 
-	offset := pagination.GetOffset()
-	if offset > len(verses) {
-		offset = len(verses)
+	offset := pagination.Offset
+	if offset > versesCount {
+		offset = versesCount
 	}
 
 	limit := offset + pagination.Limit
-	if limit > len(verses) {
-		limit = len(verses)
+	if limit > versesCount {
+		limit = versesCount
 	}
 
-	return &entity.SongText{
-		ID:         song.ID,
-		Group:      song.Group,
-		Song:       song.Song,
-		Text:       verses[offset:limit],
-		CreateAt:   song.CreatedAt,
-		UpdatedAt:  song.UpdatedAt,
-		Pagination: *pagination,
-	}, nil
+	pagination.Items = uint64(len(verses[offset:limit]))
+	pagination.Total = versesCount
+
+	return &entity.SongWithVerses{
+		ID:        song.ID,
+		GroupName: song.GroupName,
+		Name:      song.Name,
+		Verses:    verses[offset:limit],
+		CreatedAt: song.CreatedAt,
+		UpdatedAt: song.UpdatedAt,
+	}, &pagination, nil
 }
 
 // ModifySong updates an existing song in the repository based on the provided song ID and new song data.
