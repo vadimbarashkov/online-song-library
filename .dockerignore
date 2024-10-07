@@ -5,10 +5,19 @@
 */test/
 */_test.go
 
+crts/
+
+mocks/
 .mockery.yml
 
+migrations/
+
+sow/
 README.md
 LICENSE
+
+.env
+.env.example
 
 .git/
 .gitignore
